@@ -76,19 +76,19 @@
     <h2>Main Pizza Dough Inputs</h2>
 
     <label>Number of pizzas desired</label>
-    <input id="pizzas" type="number" value="50" min="1" step="1">
+    <input id="pizzas" type="number" value="10" min="1" step="1">
 
     <label>Dough weight per pizza (g) — 180g ~10" · 280g ~14"</label>
     <input id="doughWeight" type="number" value="225" min="100" step="5">
 
     <label>Dough hydration (%) — 60% rolling pin · 70% hand stretch</label>
-    <input id="hydration" type="number" value="60" min="45" max="85" step="0.5">
+    <input id="hydration" type="number" value="62" min="45" max="85" step="0.5">
 
     <label>Salt (%) — usually 2.3% to 2.7%</label>
     <input id="saltPct" type="number" value="2.5" min="0" max="4" step="0.1">
 
     <label>Levain (%) of total flour — usually 10% to 30%</label>
-    <input id="levainPct" type="number" value="25" min="0" max="60" step="1">
+    <input id="levainPct" type="number" value="15" min="0" max="60" step="1">
 
     <label>Flour split: Type 00 % of total flour (High Grade is the rest)</label>
     <input id="type00Pct" type="number" value="70" min="0" max="100" step="1">
@@ -109,15 +109,15 @@
 
     <!-- WHEN TO BAKE -->
   <div class="card">
-    <h2>When to Make & When to Bake</h2>
+    <h2>When to Mix & When to Fire</h2>
     <label>Dough mixed at</label>
     <div class="row">
-      <input id="mixHour" class="tiny" type="number" min="1" max="12" value="12">
+      <input id="mixHour" class="tiny" type="number" min="1" max="12" value="11">
       <span class="colon">:</span>
-      <input id="mixMin" class="tiny" type="number" min="0" max="59" value="0">
+      <input id="mixMin" class="tiny" type="number" min="0" max="59" value="30">
       <select id="mixAmPm" class="mid">
         <option value="AM">AM</option>
-        <option value="PM" selected>PM</option>
+        <option value="PM" selected>AM</option>
       </select>
     </div>
 
