@@ -231,8 +231,8 @@
     const windowStart = mixAtMins + Math.round(primeStartHours * 60);
     const windowEnd   = mixAtMins + Math.round(primeEndHours * 60);
 
-    fermentOut.textContent = `${fmtTime(windowStart)} – ${fmtTime(windowEnd)}`;
-    fermentHint.textContent = `Ready to bake window (approx): ${primeStartHours.toFixed(1)}–${primeEndHours.toFixed(1)} hours after mixing`;
+fermentOut.innerHTML = `<b>${fmtTime(windowStart)} – ${fmtTime(windowEnd)}</b> <b>BAKE TIME</b>`;
+fermentHint.textContent = `Ready to bake window (approx): ${primeStartHours.toFixed(1)}–${primeEndHours.toFixed(1)} hours after mixing`;
   }
 
   // Elements
