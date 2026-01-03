@@ -174,26 +174,26 @@
 
     const doughTemp = +doughTempEl.value || 24;
 
-    // Totals
-    const totalDough = pizzas * doughW;
+// Totals
+const totalDough = pizzas * doughW;
 
-    // Observable-style dough mass model:
-    // totalDough = flour + water + salt + starter
-    // water = flour * hydration
-    // salt  = flour * saltPct
-    // starter = flour * starterPct
-    const totalFlour = totalDough / (1 + hydration + saltPct + starterPct);
+// Observable-compatible interpretation (matches mourner calculator behaviour)
+// Treat "Starter %" so that, when solving from TARGET DOUGH WEIGHT,
+// starter contributes (starterPct/2) to the total formula sum.
+//
+// This makes starter amounts align with what you've been using from Observable.
+const totalFlour = totalDough / (1 + hydration + saltPct + (starterPct / 2));
 
-    // Starter (100% hydration)
-    const levainTotal = totalFlour * starterPct; // starter weight
-    const levainFlour = levainTotal / 2;
-    const levainWater = levainTotal / 2;
+// Starter (100% hydration)
+const levainTotal = totalFlour * starterPct;   // ✅ this will be ~half your previous output
+const levainFlour = levainTotal / 2;
+const levainWater = levainTotal / 2;
 
-    // Total water (incl starter water), and water to ADD
-    const totalWater = totalFlour * hydration;
-    const waterToAdd = Math.max(0, totalWater - levainWater);
+// Total water (incl starter water), and water to ADD
+const totalWater = totalFlour * hydration;
+const waterToAdd = Math.max(0, totalWater - levainWater);
 
-    const salt = totalFlour * saltPct;
+const salt = totalFlour * saltPct;
 
     // Flour split overall (Type00 + HighGrade total)
     const type00Flour = totalFlour * type00Pct;
