@@ -84,17 +84,25 @@ small { color: #555; }
 </div>
 
 <div class="card">
-<h2>Main Dough Fermentation</h2>
+  <h2>When to Make & Bake</h2>
 
-<label>Main dough air temperature (°C)</label>
-<input id="doughTemp" type="number" value="24">
+  <label>Air Temperature (°C)</label>
+  <input id="doughTemp" type="number" value="24" step="0.5">
 
-<label>Mix time (24h clock, e.g. 12.0 = noon)</label>
-<input id="mixTime" type="number" value="12">
+  <label>Dough mixed at</label>
+  <div style="display:flex; gap:8px; align-items:center;">
+    <input id="mixHour" type="number" min="1" max="12" value="12" style="width:80px;">
+    <span>:</span>
+    <input id="mixMin" type="number" min="0" max="59" value="0" style="width:90px;">
+    <select id="mixAmPm" style="width:110px; padding:8px; font-size:1em;">
+      <option value="AM">AM</option>
+      <option value="PM" selected>PM</option>
+    </select>
+  </div>
 
-<div class="output" id="fermentOut"></div>
-<div class="bar"></div>
-<small>Red → under · Green → prime · Red → over</small>
+  <div class="output" id="fermentOut"></div>
+  <div class="bar"></div>
+  <small>Red = too early · Green = prime · Red = over</small>
 </div>
 
 <div class="card">
@@ -133,13 +141,13 @@ function calc() {
   const highGradeFlour = totalFlour * hgPct - levainFlour;
 
 doughOut.innerHTML = `
-<b>ADD THE FOLLOWING (in this order)</b><br><br>
+<b>ADD THE FOLLOWING</b><br><br>
 
-1. Water: <b>${water.toFixed(0)} g</b><br>
-2. Starter Levain (100% hydration, High Grade): <b>${levainTotal.toFixed(0)} g</b><br>
-3. Type 00 Pizza Flour: <b>${type00Flour.toFixed(0)} g</b><br>
-4. High Grade Flour: <b>${highGradeFlour.toFixed(0)} g</b><br>
-5. Salt (after autolyse): <b>${salt.toFixed(0)} g</b><br>
+<b>1. Water:</b> <b>${water.toFixed(0)} g</b><br>
+<b>2. Starter:</b> <b>${levainTotal.toFixed(0)} g</b><br>
+<b>3. Type 00 Pizza Flour:</b> <b>${type00Flour.toFixed(0)} g</b><br>
+<b>4. High Grade Flour:</b> <b>${highGradeFlour.toFixed(0)} g</b><br>
+<b>5. Salt (after autolyse):</b> <b>${salt.toFixed(0)} g</b><br>
 <br>
 
 <small>
