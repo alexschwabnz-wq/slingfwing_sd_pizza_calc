@@ -177,45 +177,51 @@
 // Totals
 const totalDough = pizzas * doughW;
 
-// OBSERVABLE MODE (exact match)
-// hydration = (added water) / flour
-// levain water is NOT counted toward hydration target
-const totalFlour = totalDough / (1 + hydration + saltPct + levainPct);
+// === OBSERVABLE MATCH ===
+// Total flour INCLUDING levain flour is solved WITHOUT levain% in the denominator
+// (Levain is just a pre-mix of flour+water that comes out of that total.)
+const totalFlourAll = totalDough / (1 + hydration + saltPct);
 
-// Starter (100% hydration)
-const levainTotal = totalFlour * levainPct;
+// Levain (100% hydration)
+const levainTotal = totalFlourAll * levainPct;
 const levainFlour = levainTotal / 2;
 const levainWater = levainTotal / 2;
 
-// Water to add (Observable-style)
-const waterToAdd = totalFlour * hydration;
+// Observable's "water" is water-to-add (total water target minus levain water)
+const waterToAdd = (totalFlourAll * hydration) - levainWater;
 
-// Total water (display only)
+// Total water (for display only)
 const totalWater = waterToAdd + levainWater;
 
-// Salt
-const salt = totalFlour * saltPct;
+// Salt is based on TOTAL flour (including levain flour) in Observable
+const salt = totalFlourAll * saltPct;
 
-    // Flour split overall (Type00 + HighGrade total)
-    const type00Flour = totalFlour * type00Pct;
-    const highGradeTotalRequired = totalFlour * hgPct;
+// Observable's "flour" output is MAIN flour to add (excluding levain flour)
+const mainFlour = totalFlourAll - levainFlour;
 
-    // High grade flour to add in main mix (starter flour already counts as HG)
-    const highGradeFlourToAdd = Math.max(0, highGradeTotalRequired - levainFlour);
+// Flour split overall is based on TOTAL FLOUR (incl levain flour)
+const type00Flour = totalFlourAll * type00Pct;
+const highGradeTotalRequired = totalFlourAll * hgPct;
+
+// High grade flour to add in main mix (levain flour already counts as HG)
+const highGradeFlourToAdd = Math.max(0, highGradeTotalRequired - levainFlour);
+
+// Safety: ensure flour to add equals mainFlour
+// (type00Flour + highGradeFlourToAdd should equal mainFlour, within rounding)
 
     // Outputs
     doughOut.innerHTML = `
       <b>ADD THE FOLLOWING (in this order)</b><br><br>
       <b>1. Water:</b> <b>${waterToAdd.toFixed(0)} g</b><br>
       <b>2. Starter (100% hydration, High Grade):</b> <b>${levainTotal.toFixed(0)} g</b><br>
-      <b>3. Type 00 Pizza Flour:</b> <b>${type00Flour.toFixed(0)} g</b><br>
-      <b>4. High Grade Flour:</b> <b>${highGradeFlourToAdd.toFixed(0)} g</b><br>
+<b>3. Type 00 Pizza Flour:</b> <b>${type00Flour.toFixed(0)} g</b><br>
+<b>4. High Grade Flour:</b> <b>${highGradeFlourToAdd.toFixed(0)} g</b><br>
       <b>5. Salt (after autolyse):</b> <b>${salt.toFixed(0)} g</b><br><br>
       <small>
         Total dough: ${totalDough.toFixed(0)} g ·
-        Total flour: ${totalFlour.toFixed(0)} g ·
-        Total water: ${totalWater.toFixed(0)} g ·
-        Starter: ${levainTotal.toFixed(0)} g ·
+Total flour: ${mainFlour.toFixed(0)} g ·
+Total water: ${waterToAdd.toFixed(0)} g ·
+Starter: ${levainTotal.toFixed(0)} g ·
         Hydration: ${(hydration*100).toFixed(1)}% · Salt: ${(saltPct*100).toFixed(1)}%
       </small>
     `;
