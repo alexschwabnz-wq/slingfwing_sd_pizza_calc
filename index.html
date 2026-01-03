@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sling Fwing – Sourdough Pizza Base Calculator</title>
+
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: #fafafa;
+  margin: 0;
+  padding: 16px;
+}
+h1 { font-size: 1.6em; margin-bottom: 0.2em; }
+h2 { margin-top: 1.5em; }
+.card {
+  background: #fff;
+  padding: 14px;
+  margin-bottom: 14px;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+label { display: block; margin-top: 8px; font-weight: 600; }
+input {
+  width: 100%;
+  padding: 8px;
+  margin-top: 4px;
+  font-size: 1em;
+}
+.output {
+  font-size: 1.05em;
+  margin-top: 8px;
+}
+.good { color: #2e7d32; font-weight: 700; }
+.warn { color: #f9a825; font-weight: 700; }
+.bad  { color: #c62828; font-weight: 700; }
+.bar {
+  height: 14px;
+  border-radius: 7px;
+  background: linear-gradient(
+    to right,
+    #c62828 0%,
+    #f9a825 25%,
+    #2e7d32 45%,
+    #2e7d32 55%,
+    #f9a825 75%,
+    #c62828 100%
+  );
+  margin-top: 6px;
+}
+small { color: #555; }
+</style>
+</head>
+
+<body>
+
+<h1>Sling Fwing – Sourdough Pizza Base Calculator</h1>
+<small>Levain = High Grade Flour only · Main mix adds Type 00</small>
+
+<div class="card">
+<h2>Pizza Inputs</h2>
+
+<label>Number of pizzas</label>
+<input id="pizzas" type="number" value="50">
+
+<label>Dough weight per pizza (g)</label>
+<input id="doughWeight" type="number" value="225">
+
+<label>Total hydration (%)</label>
+<input id="hydration" type="number" value="60">
+
+<label>Levain percentage (% of total flour)</label>
+<input id="levainPct" type="number" value="25">
+
+<label>Flour split (Type 00 %)</label>
+<input id="type00Pct" type="number" value="70">
+</div>
+
+<div class="card">
+<h2>Dough Quantities</h2>
+<div class="output" id="doughOut"></div>
+</div>
+
+<div class="card">
+<h2>Starter Planning (Levain – High Grade Flour)</h2>
+
+<label>Starter air temperature (°C)</label>
+<input id="starterTemp" type="number" value="22">
+
+<div class="output" id="starterOut"></div>
+</div>
+
+<div class="card">
+<h2>Main Dough Fermentation</h2>
+
+<label>Main dough air temperature (°C)</label>
+<input id="doughTemp" type="number" value="24">
+
+<label>Mix time (24h clock, e.g. 12.0 = noon)</label>
+<input id="mixTime" type="number" value="12">
+
+<div class="output" id="fermentOut"></div>
+<div class="bar"></div>
+<small>Red → under · Green → prime · Red → over</small>
+</div>
+
+<script>
+function calc() {
+  const pizzas = +pizzasEl.value;
+  const doughW = +doughWeight.value;
+  const hydration = +hydrationEl.value / 100;
+  const levainPct = +levainPctEl.value / 100;
+  const type00Pct = +type00PctEl.value / 100;
+  const hgPct = 1 - type00Pct;
+
+  const totalDough = pizzas * doughW;
+  const totalFlour = totalDough / (1 + hydration + 0.025);
+  const water = totalFlour * hydration;
+  const salt = totalFlour * 0.025;
+
+  const levainFlour = totalFlour * levainPct;
+  const levainWater = levainFlour;
+  const levainTotal = levainFlour * 2;
+
+  const type00Flour = totalFlour * type00Pct;
+  const highGradeFlour = totalFlour * hgPct - levainFlour;
+
+  doughOut.innerHTML = `
+  Total dough: <b>${totalDough.toFixed(0)} g</b><br>
+  Total flour: <b>${totalFlour.toFixed(0)} g</b><br>
+  Water: ${water.toFixed(0)} g<br>
+  Salt: ${salt.toFixed(0)} g<br><br>
+  <b>Levain (High Grade only):</b> ${levainTotal.toFixed(0)} g<br>
+  <b>Type 00 flour:</b> ${type00Flour.toFixed(0)} g<br>
+  <b>Extra High Grade flour:</b> ${highGradeFlour.toFixed(0)} g
+  `;
+
+  const starterTemp = +starterTempEl.value;
+  const starterHours = 12 - (starterTemp - 20) * 0.8;
+
+  starterOut.innerHTML = `
+  Target levain: <b>${levainTotal.toFixed(0)} g</b><br>
+  Expected doubling time: <b>${starterHours.toFixed(1)} h</b><br>
+  Build starter in stages to peak near mix time.
+  `;
+
+  const doughTemp = +doughTempEl.value;
+  const mixTime = +mixTimeEl.value;
+  const primeStart = mixTime + 6 - (doughTemp - 22) * 0.6;
+  const primeEnd = primeStart + 2;
+
+  fermentOut.innerHTML = `
+  <span class="good">Ready to bake between:</span><br>
+  <b>${primeStart.toFixed(1)} – ${primeEnd.toFixed(1)}</b> hours<br>
+  after mixing.
+  `;
+}
+
+const pizzasEl = document.getElementById("pizzas");
+const doughWeight = document.getElementById("doughWeight");
+const hydrationEl = document.getElementById("hydration");
+const levainPctEl = document.getElementById("levainPct");
+const type00PctEl = document.getElementById("type00Pct");
+const starterTempEl = document.getElementById("starterTemp");
+const doughTempEl = document.getElementById("doughTemp");
+const mixTimeEl = document.getElementById("mixTime");
+
+document.querySelectorAll("input").forEach(i => i.addEventListener("input", calc));
+calc();
+</script>
+
+</body>
+</html>
