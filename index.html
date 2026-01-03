@@ -177,21 +177,21 @@
 // Totals
 const totalDough = pizzas * doughW;
 
-// Observable-style dough mass model
-// dough = flour + water + salt + levain
-// water = flour * hydration
-// salt  = flour * saltPct
-// levain = flour * levainPct
+// OBSERVABLE MODE (exact match)
+// hydration = (added water) / flour
+// levain water is NOT counted toward hydration target
 const totalFlour = totalDough / (1 + hydration + saltPct + levainPct);
 
-// Levain (100% hydration)
+// Starter (100% hydration)
 const levainTotal = totalFlour * levainPct;
 const levainFlour = levainTotal / 2;
 const levainWater = levainTotal / 2;
 
-// Water
-const totalWater = totalFlour * hydration;
-const waterToAdd = totalWater - levainWater;
+// Water to add (Observable-style)
+const waterToAdd = totalFlour * hydration;
+
+// Total water (display only)
+const totalWater = waterToAdd + levainWater;
 
 // Salt
 const salt = totalFlour * saltPct;
