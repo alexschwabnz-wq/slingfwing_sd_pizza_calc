@@ -67,11 +67,14 @@ small { color: #555; }
 <label>Number of pizzas desired</label>
 <input id="pizzas" type="number" value="50">
 
-<label>Dough weight per pizza (g)</label>
+<label>Dough weight per pizza g (200 11" - 250 16")</label>
 <input id="doughWeight" type="number" value="225">
 
-<label>Dough hydration (%)</label>
+<label>Dough hydration % (60% workable : 70% wet)</label>
 <input id="hydration" type="number" value="60">
+
+<label>Salt % (usually 2% - 2.5%)</label>
+<input id="saltPct" type="number" value="2.5" step="0.1">
 
 <label>Levain % (usually 10% - 30%)</label>
 <input id="levainPct" type="number" value="25">
@@ -86,7 +89,7 @@ small { color: #555; }
 </div>
 
 <div class="card">
-<h2>Starter Planning (Levain – High Grade Flour:Water (1:1))</h2>
+<h2>Starter Planning aka Levain (High Grade Flour:Water = 1:1))</h2>
 
 <label>air temperature (°C)</label>
 <input id="starterTemp" type="number" value="22">
