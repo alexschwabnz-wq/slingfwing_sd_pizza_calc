@@ -133,18 +133,19 @@ function calc() {
   const highGradeFlour = totalFlour * hgPct - levainFlour;
 
 doughOut.innerHTML = `
-<b>TOTALS (for reference)</b><br>
-Total dough weight: ${totalDough.toFixed(0)} g<br>
-Total flour (incl. levain): ${totalFlour.toFixed(0)} g<br>
+<b>ADD THE FOLLOWING (in this order)</b><br><br>
+
+<b>1. Water:</b> ${water.toFixed(0)} g<br>
+<b>2. Starter Levain (100% hydration High Grade Flour):</b> ${levainTotal.toFixed(0)} g<br>
+<b>3. Type 00 Pizza Flour:</b> ${type00Flour.toFixed(0)} g<br>
+<b>4. High Grade Flour:</b> ${highGradeFlour.toFixed(0)} g<br>
+<b>5. Salt (after autolyse):</b> ${salt.toFixed(0)} g<br>
 <br>
 
-<b>ADD / WEIGH THESE</b><br>
-<b>Water:</b> ${water.toFixed(0)} g<br>
-<b>Salt:</b> ${salt.toFixed(0)} g<br>
-<br>
-<b>Starter Levain (1:1, High Grade):</b> ${levainTotal.toFixed(0)} g<br>
-<b>Type 00 Pizza Flour:</b> ${type00Flour.toFixed(0)} g<br>
-<b>High Grade Flour (extra):</b> ${highGradeFlour.toFixed(0)} g
+<small>
+Total dough: ${totalDough.toFixed(0)} g ·  
+Total flour (incl. levain): ${totalFlour.toFixed(0)} g
+</small>
 `;
 
   const starterTemp = +starterTempEl.value;
