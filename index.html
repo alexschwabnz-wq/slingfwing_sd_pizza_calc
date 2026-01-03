@@ -132,15 +132,20 @@ function calc() {
   const type00Flour = totalFlour * type00Pct;
   const highGradeFlour = totalFlour * hgPct - levainFlour;
 
-  doughOut.innerHTML = `
-  Total dough: <b>${totalDough.toFixed(0)} g</b><br>
-  Total flour: <b>${totalFlour.toFixed(0)} g</b><br>
-  Water: ${water.toFixed(0)} g<br>
-  Salt: ${salt.toFixed(0)} g<br><br>
-  <b>Levain (High Grade only):</b> ${levainTotal.toFixed(0)} g<br>
-  <b>Type 00 flour:</b> ${type00Flour.toFixed(0)} g<br>
-  <b>Extra High Grade flour:</b> ${highGradeFlour.toFixed(0)} g
-  `;
+doughOut.innerHTML = `
+<b>TOTALS (for reference)</b><br>
+Total dough weight: ${totalDough.toFixed(0)} g<br>
+Total flour (incl. levain): ${totalFlour.toFixed(0)} g<br>
+<br>
+
+<b>ADD / WEIGH THESE</b><br>
+<b>Water:</b> ${water.toFixed(0)} g<br>
+<b>Salt:</b> ${salt.toFixed(0)} g<br>
+<br>
+<b>Starter Levain (1:1, High Grade):</b> ${levainTotal.toFixed(0)} g<br>
+<b>Type 00 Pizza Flour:</b> ${type00Flour.toFixed(0)} g<br>
+<b>High Grade Flour (extra):</b> ${highGradeFlour.toFixed(0)} g
+`;
 
   const starterTemp = +starterTempEl.value;
   const starterHours = 12 - (starterTemp - 20) * 0.8;
