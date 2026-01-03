@@ -87,8 +87,7 @@ line-height:1.25;
 <label>Salt (%) — usually 2.3% to 2.7%</label>
 <input id="saltPct" type="number" value="2.5" min="0" max="4" step="0.1">
 
-    <label>Levain (%) of total flour — usually 10% to 30%</label>
-    <label>Starter (%) of total flour — usually 10% to 30%</label>
+<label>Levain (%) of total flour — usually 10% to 30%</label>
 <input id="levainPct" type="number" value="15" min="0" max="60" step="1">
 
 <label>Flour split: Type 00 % of total flour (High Grade is the rest)</label>
@@ -113,12 +112,19 @@ Note: Levain flour is always High Grade. If you set Type 00 to 100% AND levain %
 <h2>When to Mix & When to Fire</h2>
 <label>Dough mixed at</label>
 <div class="row">
-<input id="mixHour" class="tiny" type="number" min="1" max="12" value="11">
+      <input id="mixHour" class="tiny" type="number" min="1" max="12" value="11">
+      <span class="colon">:</span>
+      <input id="mixMin" class="tiny" type="number" min="0" max="59" value="30">
+      <select id="mixAmPm" class="mid">
+        <option value="AM">AM</option>
+        <option value="PM" selected>PM</option>
+      </select>
+    <input id="mixHour" class="tiny" type="number" min="1" max="12" value="11">
 <span class="colon">:</span>
 <input id="mixMin" class="tiny" type="number" min="0" max="59" value="30">
 <select id="mixAmPm" class="mid">
-<option value="AM" selected>AM</option>
-<option value="PM">PM</option>
+  <option value="AM" selected>AM</option>
+  <option value="PM">PM</option>
 </select>
 </div>
 
@@ -173,17 +179,12 @@ const totalDough = pizzas * doughW;
 // totalDough = flour + water + salt (+ any other)
 // flour = totalDough / (1 + hydration + saltPct)
 const totalFlour = totalDough / (1 + hydration + saltPct);
-    const water = totalFlour * hydration;
-const water = totalFlour * hydration - levainWater;
+const water = totalFlour * hydration;
 const salt = totalFlour * saltPct;
 
-    // Levain (100% hydration, HG flour only)
-    const levainFlour = totalFlour * levainPct;
-    const levainTotal = levainFlour * 2; // flour + water 1:1
-// Levain (starter weight % of total flour)
-const levainTotal = totalFlour * levainPct;   // total starter weight
-const levainFlour = levainTotal / 2;          // flour in starter (100% hydration)
-const levainWater = levainTotal / 2;          // water in starter
+// Levain (100% hydration, HG flour only)
+const levainFlour = totalFlour * levainPct;
+const levainTotal = levainFlour * 2; // flour + water 1:1
 
 // Flour split overall
 const type00Flour = totalFlour * type00Pct;
