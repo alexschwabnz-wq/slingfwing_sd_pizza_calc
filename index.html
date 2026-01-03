@@ -70,7 +70,8 @@
 
   <h1>🍕 Sling Fwing – Sourdough Pizza Base Calculator Oh Yeaaaah! 🍕</h1>
   <p class="sub">
-    Observable-style starter % (starter weight % of total flour). Levain is 100% hydration and uses High Grade flour only.
+    Matches Mourner Observable: levain % is <b>levain total weight</b> as % of flour (100% hydration levain).
+    Levain uses <b>High Grade</b> flour only.
   </p>
 
   <!-- INPUTS -->
@@ -89,7 +90,7 @@
     <label>Salt (%) — usually 2.3% to 2.7%</label>
     <input id="saltPct" type="number" value="2.5" min="0" max="4" step="0.1">
 
-    <label>Starter (%) of total flour — Observable-style (10% to 30%)</label>
+    <label>Levain (%) to flour ratio — Observable-style (10% to 30%)</label>
     <input id="levainPct" type="number" value="15" min="0" max="60" step="1">
 
     <label>Flour split: Type 00 % of total flour (High Grade is the rest)</label>
@@ -99,7 +100,7 @@
     <input id="doughTemp" type="number" value="24" step="0.5">
 
     <p class="hint">
-      Note: Starter/levain flour is always High Grade. If you set Type 00 to 100% AND starter % &gt; 0, you’ll still need some High Grade for the levain.
+      Note: Levain flour is always High Grade. If Type 00 is 100% and levain % &gt; 0, you still need High Grade for the levain.
     </p>
   </div>
 
@@ -150,7 +151,7 @@
   }
 
   function fmtTime(mins){
-    mins = ((mins % 1440) + 1440) % 1440; // wrap to 0..1439
+    mins = ((mins % 1440) + 1440) % 1440;
     const h24 = Math.floor(mins / 60);
     const m = mins % 60;
     const ampm = h24 >= 12 ? "PM" : "AM";
@@ -165,82 +166,74 @@
 
     const hydration = (+hydrationEl.value || 0) / 100;
     const saltPct   = (+saltPctEl.value || 0) / 100;
-
-    // Observable-style: starter % is starter WEIGHT as % of total flour
-   const levainPct = (+levainPctEl.value || 0) / 100; 
+    const levainPct = (+levainPctEl.value || 0) / 100; // levain total weight % of flour
 
     const type00Pct = (+type00PctEl.value || 0) / 100;
     const hgPct = 1 - type00Pct;
 
     const doughTemp = +doughTempEl.value || 24;
 
-// Totals
-const totalDough = pizzas * doughW;
+    // Totals
+    const totalDough = pizzas * doughW;
 
-// === OBSERVABLE MATCH ===
-// Total flour INCLUDING levain flour is solved WITHOUT levain% in the denominator
-// (Levain is just a pre-mix of flour+water that comes out of that total.)
-const totalFlourAll = totalDough / (1 + hydration + saltPct);
+    // === OBSERVABLE MATCH CORE ===
+    // Solve flour from dough, hydration, salt (NOT levain in denominator)
+    const totalFlourAll = totalDough / (1 + hydration + saltPct);
 
-// Levain (100% hydration)
-const levainTotal = totalFlourAll * levainPct;
-const levainFlour = levainTotal / 2;
-const levainWater = levainTotal / 2;
+    // Levain (100% hydration)
+    const levainTotal = totalFlourAll * levainPct;
+    const levainFlour = levainTotal / 2;
+    const levainWater = levainTotal / 2;
 
-// Observable's "water" is water-to-add (total water target minus levain water)
-const waterToAdd = (totalFlourAll * hydration) - levainWater;
+    // Observable "water" = water to ADD (target water minus levain water)
+    const waterToAdd = Math.max(0, (totalFlourAll * hydration) - levainWater);
 
-// Total water (for display only)
-const totalWater = waterToAdd + levainWater;
+    // Salt (Observable uses total flour including levain flour)
+    const salt = totalFlourAll * saltPct;
 
-// Salt is based on TOTAL flour (including levain flour) in Observable
-const salt = totalFlourAll * saltPct;
+    // Observable "flour" output = flour to ADD (exclude levain flour)
+    const flourToAdd = totalFlourAll - levainFlour;
 
-// Observable's "flour" output is MAIN flour to add (excluding levain flour)
-const mainFlour = totalFlourAll - levainFlour;
+    // Flour split (overall ratio includes levain flour)
+    const type00Flour = totalFlourAll * type00Pct;
+    const highGradeTotalRequired = totalFlourAll * hgPct;
 
-// Flour split overall is based on TOTAL FLOUR (incl levain flour)
-const type00Flour = totalFlourAll * type00Pct;
-const highGradeTotalRequired = totalFlourAll * hgPct;
+    // High grade flour to add (levain flour already HG)
+    const highGradeFlourToAdd = Math.max(0, highGradeTotalRequired - levainFlour);
 
-// High grade flour to add in main mix (levain flour already counts as HG)
-const highGradeFlourToAdd = Math.max(0, highGradeTotalRequired - levainFlour);
-
-// Safety: ensure flour to add equals mainFlour
-// (type00Flour + highGradeFlourToAdd should equal mainFlour, within rounding)
-
-    // Outputs
+    // (Sanity: type00Flour + highGradeFlourToAdd ≈ flourToAdd)
+    // ---- OUTPUTS ----
     doughOut.innerHTML = `
       <b>ADD THE FOLLOWING (in this order)</b><br><br>
       <b>1. Water:</b> <b>${waterToAdd.toFixed(0)} g</b><br>
-      <b>2. Starter (100% hydration, High Grade):</b> <b>${levainTotal.toFixed(0)} g</b><br>
-<b>3. Type 00 Pizza Flour:</b> <b>${type00Flour.toFixed(0)} g</b><br>
-<b>4. High Grade Flour:</b> <b>${highGradeFlourToAdd.toFixed(0)} g</b><br>
-      <b>5. Salt (after autolyse):</b> <b>${salt.toFixed(0)} g</b><br><br>
+      <b>2. Levain / Starter (100% hydration, High Grade):</b> <b>${levainTotal.toFixed(0)} g</b><br>
+      <b>3. Type 00 Pizza Flour:</b> <b>${type00Flour.toFixed(0)} g</b><br>
+      <b>4. High Grade Flour:</b> <b>${highGradeFlourToAdd.toFixed(0)} g</b><br>
+      <b>5. Salt (after autolyse):</b> <b>${salt.toFixed(1)} g</b><br><br>
+
       <small>
         Total dough: ${totalDough.toFixed(0)} g ·
-Total flour: ${mainFlour.toFixed(0)} g ·
-Total water: ${waterToAdd.toFixed(0)} g ·
-Starter: ${levainTotal.toFixed(0)} g ·
+        Flour to add: ${flourToAdd.toFixed(0)} g ·
+        Water to add: ${waterToAdd.toFixed(0)} g ·
+        Levain: ${levainTotal.toFixed(0)} g ·
         Hydration: ${(hydration*100).toFixed(1)}% · Salt: ${(saltPct*100).toFixed(1)}%
       </small>
     `;
 
-    // Starter planning (simple, tired-human friendly)
+    // Starter planning (simple)
     const starterTemp = +starterTempEl.value || 22;
-    // very rough: warmer = faster
     const starterHours = clamp(12 - (starterTemp - 20) * 0.8, 4, 18);
 
     starterOut.innerHTML = `
-      <b>Target starter:</b> <b>${levainTotal.toFixed(0)} g</b><br>
+      <b>Target levain:</b> <b>${levainTotal.toFixed(0)} g</b><br>
       <b>Air temp:</b> <b>${starterTemp.toFixed(1)} °C</b><br>
       <b>Rough doubling time:</b> <b>${starterHours.toFixed(1)} h</b><br><br>
-      <b>Sleep-deprived plan:</b><br>
-      • Do <b>2 feeds</b> if you can (aim for the starter to peak close to mix time).<br>
-      • If starter has collapsed / smells harsh / looks sad: <b>feed again and wait</b>.
+      <b>Simple plan:</b><br>
+      • Do <b>2 feeds</b> if you can so it peaks near mix time.<br>
+      • If it’s flat/sour/collapsed: <b>feed again</b> and wait.
     `;
 
-    // Bake timing (heuristic, like before)
+    // Bake timing (heuristic)
     const mixHour = clamp(+mixHourEl.value || 12, 1, 12);
     const mixMin  = clamp(+mixMinEl.value || 0, 0, 59);
     const mixAmPm = mixAmPmEl.value || "AM";
@@ -253,7 +246,8 @@ Starter: ${levainTotal.toFixed(0)} g ·
     const windowEnd   = mixAtMins + Math.round(primeEndHours * 60);
 
     fermentOut.innerHTML = `<b>${fmtTime(windowStart)} – ${fmtTime(windowEnd)}</b> <b>BAKE TIME</b>`;
-    fermentHint.textContent = `Ready to bake window (approx): ${primeStartHours.toFixed(1)}–${primeEndHours.toFixed(1)} hours after mixing`;
+    fermentHint.textContent =
+      `Ready window (approx): ${primeStartHours.toFixed(1)}–${primeEndHours.toFixed(1)} hours after mixing`;
   }
 
   // Elements
@@ -276,7 +270,7 @@ Starter: ${levainTotal.toFixed(0)} g ·
   const fermentOut = document.getElementById("fermentOut");
   const fermentHint = document.getElementById("fermentHint");
 
-  // Recalc on any changes
+  // Recalc
   document.querySelectorAll("input, select").forEach(el => {
     el.addEventListener("input", calc);
     el.addEventListener("change", calc);
