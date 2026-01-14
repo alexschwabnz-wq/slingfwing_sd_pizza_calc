@@ -64,7 +64,6 @@
     }
     .hint{ color:#666; font-size:0.92em; margin-top:8px; }
 
-    /* NEW helpers */
     .warn{
       margin-top:10px;
       padding:10px;
@@ -95,6 +94,7 @@
       margin-right:6px;
     }
     .muted{ color:#6b7280; }
+    small{ color:#6b7280; }
   </style>
 </head>
 
@@ -102,19 +102,27 @@
 
   <h1>🍕 Sling Fwing – Sourdough Pizza Party Calculator 🍕</h1>
   <p class="sub">
-    Matches Mourner Observable: levain % is <b>levain total weight</b> as % of flour (<b>100% hydration levain</b>).
-    Levain uses <b>High Grade</b> flour only. Designed for <b>same-day paddock pizzas</b> (no fridge).
+    Levain % is <b>levain total weight</b> as % of flour (<b>100% hydration levain</b>). Levain uses <b>High Grade</b> flour only.
+    Designed for <b>same-day paddock pizzas</b> (no fridge).
   </p>
 
   <!-- INPUTS -->
   <div class="card">
     <h2>Main Pizza Dough Inputs</h2>
 
+    <label>Oven size</label>
+    <select id="oven">
+      <option value="small" selected>Small Ooni (12") — realistic 10.5–11" pizza</option>
+      <option value="large">Large Ooni (16") — realistic 13.5–14.5" pizza</option>
+    </select>
+    <div class="hint" id="ovenHint">—</div>
+
     <label>Number of pizzas desired</label>
     <input id="pizzas" type="number" value="50" min="1" step="1">
 
-    <label>Dough weight per pizza (g) — 180g ~10" · 280g ~14"</label>
-    <input id="doughWeight" type="number" value="225" min="100" step="5">
+    <label>Dough weight per pizza (g)</label>
+    <input id="doughWeight" type="number" value="200" min="100" step="5">
+    <div class="hint">Rule of thumb: <b>Small Ooni 190–200g</b> · <b>Large Ooni 260–270g</b></div>
 
     <label>Dough hydration (%) — 58–62% paddock-friendly · higher = stickier</label>
     <input id="hydration" type="number" value="60" min="45" max="85" step="0.5">
@@ -142,6 +150,41 @@
     <div class="output" id="doughOut">—</div>
   </div>
 
+  <!-- SAUCE & CHEESE -->
+  <div class="card">
+    <h2>Margherita Baseline (Sauce + Cheese)</h2>
+
+    <label>Pizza build style (affects topping quantities)</label>
+    <select id="buildStyle">
+      <option value="hand" selected>Hand-stretched (paddock realistic, rimmed)</option>
+      <option value="rolled">Rolled / sheeted (home-oven even thickness)</option>
+    </select>
+    <div class="hint" id="buildHint">—</div>
+
+    <label>Sauce coverage</label>
+    <select id="sauceStyle">
+      <option value="light">Light</option>
+      <option value="medium" selected>Medium</option>
+      <option value="heavy">Heavy</option>
+    </select>
+
+    <label>Cheese coverage</label>
+    <select id="cheeseStyle">
+      <option value="light" selected>Light</option>
+      <option value="medium">Medium</option>
+      <option value="heavy">Heavy</option>
+    </select>
+
+    <label>Tomato can size (g)</label>
+    <select id="canSize">
+      <option value="400">400 g</option>
+      <option value="425" selected>425 g</option>
+      <option value="800">800 g</option>
+    </select>
+
+    <div class="output" id="margOut">—</div>
+  </div>
+
   <!-- WHEN TO BAKE -->
   <div class="card">
     <h2>When to Mix & When to Fire</h2>
@@ -161,7 +204,7 @@
     <div class="hint" id="fermentHint"></div>
   </div>
 
-  <!-- PIZZA WORKFLOW (NEW) -->
+  <!-- PIZZA WORKFLOW -->
   <div class="card">
     <h2>Pizza Workflow (Same-Day, Paddock-Proof)</h2>
 
@@ -180,7 +223,7 @@
     <div class="output" id="pizzaGuideOut">—</div>
   </div>
 
-  <!-- STARTER PLANNING (LAST) -->
+  <!-- STARTER PLANNING -->
   <div class="card">
     <h2>Starter Planning (Levain Build)</h2>
 
@@ -210,14 +253,34 @@
     return `${h12}:${String(m).padStart(2,"0")} ${ampm}`;
   }
 
+  let userTouchedDoughWeight = false;
+
+  function coverageMultiplier(style){
+    // medium = baseline
+    if (style === "light") return 0.85;
+    if (style === "heavy") return 1.15;
+    return 1.00; // medium
+  }
+
   function calc() {
     // Inputs
+    const oven = ovenEl.value;
     const pizzas = +pizzasEl.value || 0;
+
+    // Oven hint + default dough weight unless user set it
+    if (oven === "small") {
+      ovenHint.innerHTML = `<span class="pill">Small Ooni</span> Aim for <b>10.5–11"</b> pizzas. Suggested dough ball: <b>190–200g</b>.`;
+      if (!userTouchedDoughWeight) doughWeightEl.value = 200;
+    } else {
+      ovenHint.innerHTML = `<span class="pill">Large Ooni</span> Aim for <b>13.5–14.5"</b> pizzas. Suggested dough ball: <b>260–270g</b>.`;
+      if (!userTouchedDoughWeight) doughWeightEl.value = 265;
+    }
+
     const doughW = +doughWeightEl.value || 0;
 
     const hydration = (+hydrationEl.value || 0) / 100;
     const saltPct   = (+saltPctEl.value || 0) / 100;
-    const levainPct = (+levainPctEl.value || 0) / 100; // levain total weight % of flour
+    const levainPct = (+levainPctEl.value || 0) / 100;
 
     const type00Pct = (+type00PctEl.value || 0) / 100;
     const hgPct = 1 - type00Pct;
@@ -233,29 +296,20 @@
     // Totals
     const totalDough = pizzas * doughW;
 
-    // === OBSERVABLE MATCH CORE ===
-    // Solve flour from dough, hydration, salt (NOT levain in denominator)
+    // Dough math (your original core)
     const totalFlourAll = totalDough / (1 + hydration + saltPct);
 
-    // Levain (100% hydration)
-    const levainTotal = totalFlourAll * levainPct;
+    const levainTotal = totalFlourAll * levainPct;   // 100% hydration levain
     const levainFlour = levainTotal / 2;
     const levainWater = levainTotal / 2;
 
-    // Water to ADD (target water minus levain water)
     const waterToAdd = Math.max(0, (totalFlourAll * hydration) - levainWater);
-
-    // Salt (uses total flour including levain flour)
     const salt = totalFlourAll * saltPct;
 
-    // Flour to ADD (exclude levain flour)
     const flourToAdd = totalFlourAll - levainFlour;
 
-    // Flour split (overall ratio includes levain flour)
     const type00Flour = totalFlourAll * type00Pct;
     const highGradeTotalRequired = totalFlourAll * hgPct;
-
-    // High grade flour to add (levain flour already HG)
     const highGradeFlourToAdd = Math.max(0, highGradeTotalRequired - levainFlour);
 
     doughOut.innerHTML = `
@@ -271,12 +325,54 @@
       <b>5) Salt:</b> <b>${salt.toFixed(1)} g</b><br><br>
 
       <small>
-        Total dough: ${totalDough.toFixed(0)} g ·
-        Flour to add: ${flourToAdd.toFixed(0)} g ·
-        Water to add: ${waterToAdd.toFixed(0)} g ·
-        Levain: ${levainTotal.toFixed(0)} g ·
+        Total dough: ${totalDough.toFixed(0)} g · Flour to add: ${flourToAdd.toFixed(0)} g ·
+        Water to add: ${waterToAdd.toFixed(0)} g · Levain: ${levainTotal.toFixed(0)} g ·
         Hydration: ${(hydration*100).toFixed(1)}% · Salt: ${(saltPct*100).toFixed(1)}%
       </small>
+    `;
+
+    // ---------- Sauce + cheese baseline ----------
+    const buildStyle = buildStyleEl.value; // hand vs rolled
+
+    // Hand-stretched bases (rimmed, smaller sauceable area)
+    let sauceBase = (oven === "small") ? 60 : 80;
+    let cheeseBase = (oven === "small") ? 80 : 110;
+
+    // Rolled/sheeted: more even + bigger sauceable area → usually more sauce/cheese
+    // (your earlier home-oven tests overestimated vs paddock reality; this toggle fixes that)
+    if (buildStyle === "rolled") {
+      sauceBase = Math.round(sauceBase * 1.25);
+      cheeseBase = Math.round(cheeseBase * 1.15);
+      buildHint.innerHTML = `<span class="pill">Rolled</span> Even thickness + bigger centre area → estimates bumped up.`;
+    } else {
+      buildHint.innerHTML = `<span class="pill">Hand-stretched</span> Paddock realistic (rim eats area) → more conservative, less waste.`;
+    }
+
+    const saucePer = Math.round(sauceBase * coverageMultiplier(sauceStyleEl.value));
+    const cheesePer = Math.round(cheeseBase * coverageMultiplier(cheeseStyleEl.value));
+
+    const sauceTotal = pizzas * saucePer;
+    const cheeseTotal = pizzas * cheesePer;
+
+    const canSize = +canSizeEl.value || 425;
+
+    const sauceWithBuffer = Math.round(sauceTotal * 1.12); // 12% buffer
+    const cansNeeded = Math.ceil(sauceWithBuffer / canSize);
+
+    const cheeseWithBuffer = Math.round(cheeseTotal * 1.10); // 10% buffer
+    const cheeseKg = (cheeseWithBuffer / 1000).toFixed(2);
+
+    margOut.innerHTML = `
+      <b>Per pizza (Margherita baseline)</b><br>
+      <b>Sauce:</b> <b>${saucePer} g</b> <span class="muted">(${buildStyle === "rolled" ? "rolled" : "hand-stretched"})</span><br>
+      <b>Cheese:</b> <b>${cheesePer} g</b><br><br>
+
+      <b>Total for ${pizzas} pizzas</b><br>
+      <b>Sauce total:</b> ${sauceTotal.toFixed(0)} g → with buffer: <b>${sauceWithBuffer} g</b><br>
+      <b>Buy:</b> <b>${cansNeeded}</b> × <b>${canSize} g</b> cans<br><br>
+
+      <b>Cheese total:</b> ${cheeseTotal.toFixed(0)} g → with buffer: <b>${cheeseWithBuffer} g</b><br>
+      <b>Buy:</b> <b>${cheeseKg} kg</b>
     `;
 
     // Starter planning (simple)
@@ -292,7 +388,7 @@
       • If it’s flat/sour/collapsed: <b>feed again</b> and wait.
     `;
 
-    // Bake timing (existing heuristic kept)
+    // Bake timing (kept simple)
     const mixHour = clamp(+mixHourEl.value || 12, 1, 12);
     const mixMin  = clamp(+mixMinEl.value || 0, 0, 59);
     const mixAmPm = mixAmPmEl.value || "AM";
@@ -308,22 +404,15 @@
     fermentHint.textContent =
       `Heuristic firing window: ${primeStartHours.toFixed(1)}–${primeEndHours.toFixed(1)} hours after autolyse start (temp-based).`;
 
-    // ===== PIZZA WORKFLOW GUIDANCE (NEW) =====
-    const levainPctNum = (+levainPctEl.value || 0); // % shown to user
+    // Workflow guidance + pizza starter guidance
+    const levainPctNum = (+levainPctEl.value || 0);
     let levainMsg = "";
-    if (levainPctNum <= 0) {
-      levainMsg = `Levain is <b>0%</b> → not sourdough.`;
-    } else if (levainPctNum < 2) {
-      levainMsg = `Very low starter. Great extensibility, but may not be ready same-day unless warm/long timeline.`;
-    } else if (levainPctNum <= 4) {
-      levainMsg = `✅ <b>Pizza zone</b> for same-day: <b>2–4%</b> levain. Less snap-back, more forgiving stretch.`;
-    } else if (levainPctNum <= 8) {
-      levainMsg = `Moderate/high starter. Faster, but make sure you get a long final rest after balling.`;
-    } else {
-      levainMsg = `⚠️ Bread-leaning starter %. Expect tight dough + snap-back unless you ball early + rest a long time.`;
-    }
+    if (levainPctNum <= 0) levainMsg = `Levain is <b>0%</b> → not sourdough.`;
+    else if (levainPctNum < 2) levainMsg = `Very low starter. Great extensibility, may be slow same-day.`;
+    else if (levainPctNum <= 4) levainMsg = `✅ <b>Pizza zone</b> for same-day: <b>2–4%</b> levain (less snap-back).`;
+    else if (levainPctNum <= 8) levainMsg = `Moderate/high starter. Faster, but prioritize long ball rest.`;
+    else levainMsg = `⚠️ Bread-leaning starter %. Expect tighter dough unless you ball early + rest long.`;
 
-    // Schedule from mix time
     const tAutolyseStart = mixAtMins;
     const tAutolyseEnd = tAutolyseStart + autolyseMin;
 
@@ -331,8 +420,6 @@
     const tFold1 = tAddStarterSalt + fold1Min;
     const tFold2 = tFold1 + fold2Min;
 
-    // Recommend ball time = start of bake window minus relax,
-    // but not before Fold #2 + 15min
     let tBall = windowStart - relaxMin;
     tBall = Math.max(tBall, tFold2 + 15);
 
@@ -342,25 +429,24 @@
     if (tReadyFromBalls > windowStart) {
       statusBox = `
         <div class="warn">
-          <b>Snap-back risk:</b> your ball relax finishes at <b>${fmtTime(tReadyFromBalls)}</b>,
-          which is after the firing window starts.<br><br>
+          <b>Snap-back risk:</b> ball relax finishes at <b>${fmtTime(tReadyFromBalls)}</b> (after firing window starts).<br><br>
           Fix: <b>ball earlier</b> (reduce fold gaps), <b>start earlier</b>, or <b>reduce levain%</b>.
         </div>
       `;
     } else {
       statusBox = `
         <div class="ok">
-          <b>Good shape:</b> balls have time to relax before firing. Expect easier stretching + less snap-back.
+          <b>Good shape:</b> balls have time to relax before firing → easier stretch, less snap-back.
         </div>
       `;
     }
 
     pizzaGuideOut.innerHTML = `
-      <span class="pill">Order</span> <b>Water+Flour</b> → Autolyse → <b>Add starter + salt</b> → Fold #1 → Fold #2 → <b>Ball</b> → Relax → Bake<br><br>
+      <span class="pill">Order</span> <b>Water+Flour</b> → Autolyse → <b>Add levain + salt</b> → Fold #1 → Fold #2 → <b>Ball</b> → Relax → Bake<br><br>
 
       <b>Suggested schedule</b><br>
       • <b>${fmtTime(tAutolyseStart)}</b> Autolyse start (flour + water only, shaggy mix)<br>
-      • <b>${fmtTime(tAutolyseEnd)}</b> Add <b>starter + salt</b> (1–2 min gentle mix)<br>
+      • <b>${fmtTime(tAutolyseEnd)}</b> Add <b>levain + salt</b> (1–2 min gentle mix)<br>
       • <b>${fmtTime(tFold1)}</b> Fold #1 (30–60 sec)<br>
       • <b>${fmtTime(tFold2)}</b> Fold #2 (30–60 sec)<br>
       • <b>${fmtTime(tBall)}</b> Divide + ball (don’t over-tighten)<br>
@@ -372,6 +458,9 @@
   }
 
   // Elements
+  const ovenEl = document.getElementById("oven");
+  const ovenHint = document.getElementById("ovenHint");
+
   const pizzasEl = document.getElementById("pizzas");
   const doughWeightEl = document.getElementById("doughWeight");
   const hydrationEl = document.getElementById("hydration");
@@ -390,12 +479,22 @@
   const relaxMinEl = document.getElementById("relaxMin");
   const pizzaGuideOut = document.getElementById("pizzaGuideOut");
 
+  const buildStyleEl = document.getElementById("buildStyle");
+  const buildHint = document.getElementById("buildHint");
+
+  const sauceStyleEl = document.getElementById("sauceStyle");
+  const cheeseStyleEl = document.getElementById("cheeseStyle");
+  const canSizeEl = document.getElementById("canSize");
+  const margOut = document.getElementById("margOut");
+
   const doughOut = document.getElementById("doughOut");
   const starterTempEl = document.getElementById("starterTemp");
   const starterOut = document.getElementById("starterOut");
 
   const fermentOut = document.getElementById("fermentOut");
   const fermentHint = document.getElementById("fermentHint");
+
+  doughWeightEl.addEventListener("input", () => { userTouchedDoughWeight = true; });
 
   // Recalc
   document.querySelectorAll("input, select").forEach(el => {
