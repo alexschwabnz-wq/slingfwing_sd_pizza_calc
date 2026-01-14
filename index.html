@@ -388,7 +388,7 @@
   }
 
   // =========================
-  // Tabs (bulletproof)
+  // Tabs
   // =========================
   (function setupTabs(){
     const tabBtns = Array.from(document.querySelectorAll(".tabbtn"));
@@ -494,6 +494,7 @@
   // =========================
   function calcPizza(){
     const oven = ovenEl.value;
+
     if (oven === "small") {
       ovenHintEl.innerHTML = `<span class="pill">Small Ooni</span> Aim for <b>10.5–11"</b> pizzas. Suggested dough ball: <b>190–200g</b>.`;
       if (!userTouchedDoughWeight) doughWeightEl.value = 200;
@@ -515,10 +516,8 @@
 
     const totalDough = pizzas * doughW;
 
-    // Flour from dough without levain in denominator (your original approach)
     const totalFlourAll = totalDough / (1 + hydration + saltPct);
 
-    // Levain 100% hydration
     const levainTotal = totalFlourAll * levainPct;
     const levainFlour = levainTotal / 2;
     const levainWater = levainTotal / 2;
@@ -551,8 +550,8 @@
       </small>
     `;
 
-    // Sauce + cheese estimates
     const buildStyle = buildStyleEl.value;
+
     let sauceBase = (oven === "small") ? 60 : 80;
     let cheeseBase = (oven === "small") ? 80 : 110;
 
@@ -579,7 +578,7 @@
 
     margOutEl.innerHTML = `
       <b>Per pizza (Margherita baseline)</b><br>
-      <b>Sauce:</b> <b>${saucePer} g</b> <span class="muted">(${buildStyle})</span><br>
+      <b>Sauce:</b> <b>${saucePer} g</b><br>
       <b>Cheese:</b> <b>${cheesePer} g</b><br><br>
 
       <b>Total for ${pizzas} pizzas</b><br>
@@ -590,7 +589,6 @@
       <b>Buy:</b> <b>${cheeseKg} kg</b>
     `;
 
-    // Starter planning (simple)
     const starterTemp = +starterTempEl.value || 22;
     const starterHours = clamp(12 - (starterTemp - 20) * 0.8, 4, 18);
 
@@ -603,7 +601,6 @@
       • If it’s flat/sour/collapsed: <b>feed again</b> and wait.
     `;
 
-    // Firing window heuristic
     const mixHour = clamp(+mixHourEl.value || 12, 1, 12);
     const mixMin  = clamp(+mixMinEl.value || 0, 0, 59);
     const mixAmPm = mixAmPmEl.value || "AM";
@@ -618,7 +615,6 @@
     fermentOutEl.innerHTML = `<b>${fmtTime(windowStart)} – ${fmtTime(windowEnd)}</b> <b>IDEAL FIRING WINDOW</b>`;
     fermentHintEl.textContent = `Heuristic: ${primeStartHours.toFixed(1)}–${primeEndHours.toFixed(1)} hours after start (temp sensitive).`;
 
-    // Workflow guidance
     const autolyseMin = clamp(+autolyseMinEl.value || 30, 0, 180);
     const fold1Min = clamp(+fold1MinEl.value || 45, 15, 240);
     const fold2Min = clamp(+fold2MinEl.value || 45, 15, 240);
@@ -637,7 +633,6 @@
     const tFold1 = tAutolyseEnd + fold1Min;
     const tFold2 = tFold1 + fold2Min;
 
-    // ball so relax finishes before windowStart (ideal)
     let tBall = windowStart - relaxMin;
     tBall = Math.max(tBall, tFold2 + 15);
     const tRelaxDone = tBall + relaxMin;
@@ -673,7 +668,7 @@
       ${statusBox}
     `;
   }
-  
+
   // =========================
   // Bread calc
   // =========================
@@ -686,7 +681,6 @@
     const levainPct = (+breadLevainPctEl.value || 0) / 100;
     const autolyseMin = clamp(+breadAutolyseMinEl.value || 30, 0, 180);
 
-    // Blend percents (normalise to 100)
     let w  = +breadWhitePctEl.value || 0;
     let ww = +breadWholePctEl.value || 0;
     let rye = +breadRyePctEl.value || 0;
@@ -704,7 +698,6 @@
 
     const semPct = nsem * 100;
 
-    // Auto hydration bump for coarse semolina (up to +4%)
     let hydrationAdj = 0;
     if (nsem > 0) hydrationAdj += Math.min(0.04, nsem * 0.5);
     const effectiveHydration = baseHydration + hydrationAdj;
@@ -716,10 +709,8 @@
 
     const totalDough = loaves * loafW;
 
-    // Flour from dough without levain in denominator
     const totalFlourAll = totalDough / (1 + effectiveHydration + saltPct);
 
-    // Levain 100% hydration
     const levainTotal = totalFlourAll * levainPct;
     const levainFlour = levainTotal / 2;
     const levainWater = levainTotal / 2;
@@ -727,15 +718,13 @@
     const waterToAdd = Math.max(0, (totalFlourAll * effectiveHydration) - levainWater);
     const salt = totalFlourAll * saltPct;
 
-    // Flour totals by blend (includes levain flour)
     const whiteTotal = totalFlourAll * nw;
     const wholeTotal = totalFlourAll * nww;
     const ryeTotal = totalFlourAll * nrye;
     const speltTotal = totalFlourAll * nsp;
     const semolinaTotal = totalFlourAll * nsem;
 
-    // Levain flour allocation (semolina NEVER in levain)
-    const levainMode = breadLevainFlourModeEl.value; // "white" or "blend"
+    const levainMode = breadLevainFlourModeEl.value;
     let levWhite = levainFlour, levWhole = 0, levRye = 0, levSpelt = 0;
 
     if (levainMode === "blend") {
@@ -751,14 +740,12 @@
       levSpelt = levainFlour * rsp;
     }
 
-    // Flour to add by type (subtract levain flour allocation)
     const whiteAdd = Math.max(0, whiteTotal - levWhite);
     const wholeAdd = Math.max(0, wholeTotal - levWhole);
     const ryeAdd = Math.max(0, ryeTotal - levRye);
     const speltAdd = Math.max(0, speltTotal - levSpelt);
     const semolinaAdd = Math.max(0, semolinaTotal);
 
-    // Blend advice
     const wholeGrainPct = (nww + nrye + nsp) * 100;
     const ryePct = nrye * 100;
     const spPct = nsp * 100;
@@ -790,7 +777,6 @@
       ${semSoak}
     `;
 
-    // Levain hint
     const lp = (+breadLevainPctEl.value || 0);
     let levainHint = "";
     if (lp <= 0) levainHint = "Levain 0% = not sourdough.";
@@ -824,14 +810,12 @@
       </small>
     `;
 
-    // Simple schedule heuristic
     const temp = +breadTempEl.value || 22;
     const mixHour = clamp(+breadMixHourEl.value || 12, 1, 12);
     const mixMin  = clamp(+breadMixMinEl.value || 0, 0, 59);
     const mixAmPm = breadMixAmPmEl.value || "AM";
     const startAt = toMinutes(mixHour, mixMin, mixAmPm);
 
-    // baseline bulk at 22C + 20% levain ≈ 4.5h
     const levainPctNum = (+breadLevainPctEl.value || 0);
     const bulkBase = 4.5 * (20 / Math.max(5, levainPctNum));
     const wholeSpeed = 1 - Math.min(0.18, (wholeGrainPct/100) * 0.25);
@@ -886,14 +870,6 @@
     calcBread();
   }
 
-  // =========================
-  // Recalc wiring
-  // =========================
-  function calcAll(){
-    calcPizza();
-    calcBread();
-  }
-
   breadPresetEl.addEventListener("change", applyBreadPreset);
 
   document.querySelectorAll("#tab-pizza input, #tab-pizza select").forEach(el => {
@@ -907,4 +883,9 @@
   });
 
   // Initial render
-  calcAll();
+  calcPizza();
+  calcBread();
+</script>
+
+</body>
+</html>
