@@ -641,65 +641,64 @@
     tBall = Math.max(tBall, tFold2 + 15);
     const tRelaxDone = tBall + relaxMin;
 
-    const levNum = (+levainPctEl.value || 0);
+       const levNum = (+levainPctEl.value || 0);
     let levMsg = "";
     if (levNum <= 0) levMsg = `Levain 0% → not sourdough.`;
     else if (levNum <= 4) levMsg = `✅ Pizza zone: <b>2–4%</b> is calm + stretchy.`;
     else if (levNum <= 8) levMsg = `Moderate starter: faster, give balls longer rest.`;
     else levMsg = `⚠️ High starter: can feel tight early, then slack later.`;
 
-  // --- Timing signal (do you have enough rest BEFORE the window starts?) ---
-const restBeforeWindowMin = Math.round(windowStart - tBall); // equals relaxMin unless tBall got pushed later
-let timingMsg = "";
-let timingClass = "ok";
+    // --- Timing signal (do you have enough rest BEFORE the window starts?) ---
+    const restBeforeWindowMin = Math.round(windowStart - tBall); // usually equals relaxMin unless tBall was pushed later
+    let timingMsg = "";
+    let timingClass = "ok";
 
-if (restBeforeWindowMin < 45){
-  timingClass = "warn";
-  timingMsg = `Timing is tight: only <b>${restBeforeWindowMin} min</b> ball rest before the window.`;
-} else if (restBeforeWindowMin < 90){
-  timingClass = "warn";
-  timingMsg = `Timing is borderline: <b>${restBeforeWindowMin} min</b> ball rest before the window.`;
-} else {
-  timingMsg = `Timing looks good: <b>${restBeforeWindowMin} min</b> ball rest before the window.`;
-}
+    if (restBeforeWindowMin < 45){
+      timingClass = "warn";
+      timingMsg = `Timing is tight: only <b>${restBeforeWindowMin} min</b> ball rest before the window.`;
+    } else if (restBeforeWindowMin < 90){
+      timingClass = "warn";
+      timingMsg = `Timing is borderline: <b>${restBeforeWindowMin} min</b> ball rest before the window.`;
+    } else {
+      timingMsg = `Timing looks good: <b>${restBeforeWindowMin} min</b> ball rest before the window.`;
+    }
 
-// --- Snap-back risk signal (mostly relax time, plus small nudges) ---
-const relaxMin = clamp(+relaxMinEl.value || 150, 0, 360);
-const hydrationPct = (+hydrationEl.value || 0);
-const levainPctNum = (+levainPctEl.value || 0);
+    // --- Snap-back risk signal (mostly relax time, plus small nudges) ---
+    const hydrationPct = (+hydrationEl.value || 0);
+    const levainPctNum = (+levainPctEl.value || 0);
 
-let riskScore = 0; // higher = more snap-back risk
+    let riskScore = 0; // higher = more snap-back risk
 
-// relax dominates
-if (relaxMin < 45) riskScore += 3;
-else if (relaxMin < 90) riskScore += 2;
-else if (relaxMin < 120) riskScore += 1;
+    // relax dominates (uses EXISTING relaxMin from above)
+    if (relaxMin < 45) riskScore += 3;
+    else if (relaxMin < 90) riskScore += 2;
+    else if (relaxMin < 120) riskScore += 1;
 
-// stiffer dough tends to snap back more
-if (hydrationPct <= 58) riskScore += 1;
-if (hydrationPct >= 68) riskScore -= 1;
+    // stiffer dough tends to snap back more
+    if (hydrationPct <= 58) riskScore += 1;
+    if (hydrationPct >= 68) riskScore -= 1;
 
-// higher levain tends to relax dough more (but can go slack later)
-if (levainPctNum >= 8) riskScore -= 1;
-if (levainPctNum >= 15) riskScore -= 1;
+    // higher levain tends to relax dough more (but can go slack later)
+    if (levainPctNum >= 8) riskScore -= 1;
+    if (levainPctNum >= 15) riskScore -= 1;
 
-riskScore = clamp(riskScore, 0, 4);
+    riskScore = clamp(riskScore, 0, 4);
 
-let riskLabel = "Low";
-let riskClass = "ok";
-if (riskScore >= 3){ riskLabel = "High"; riskClass = "warn"; }
-else if (riskScore >= 2){ riskLabel = "Medium"; riskClass = "warn"; }
+    let riskLabel = "Low";
+    let riskClass = "ok";
+    if (riskScore >= 3){ riskLabel = "High"; riskClass = "warn"; }
+    else if (riskScore >= 2){ riskLabel = "Medium"; riskClass = "warn"; }
 
-const statusBox = `
-  <div class="${timingClass}">
-    <b>${timingMsg}</b><br>
-    <span class="muted">Ball at <b>${fmtTime(tBall)}</b> · Window starts <b>${fmtTime(windowStart)}</b></span>
-  </div>
-  <div class="${riskClass}">
-    <b>Snap-back risk: ${riskLabel}</b><br>
-    <span class="muted">Based on relax ${relaxMin} min, hydration ${hydrationPct}%, levain ${levainPctNum}%.</span>
-  </div>
-`;
+    const statusBox = `
+      <div class="${timingClass}">
+        <b>${timingMsg}</b><br>
+        <span class="muted">Ball at <b>${fmtTime(tBall)}</b> · Window starts <b>${fmtTime(windowStart)}</b></span>
+      </div>
+      <div class="${riskClass}">
+        <b>Snap-back risk: ${riskLabel}</b><br>
+        <span class="muted">Based on relax ${relaxMin} min, hydration ${hydrationPct}%, levain ${levainPctNum}%.</span>
+      </div>
+    `;
     
     pizzaGuideOutEl.innerHTML = `
       <span class="pill">Process</span> Water+Flour → Autolyse → Add levain+salt → Fold → Fold → Ball → Relax → Bake<br><br>
