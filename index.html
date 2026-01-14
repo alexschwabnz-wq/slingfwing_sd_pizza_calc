@@ -369,33 +369,19 @@
 </div>
 
 <script>
-  function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+  /* IMPORTANT:
+     This bread block assumes your file ALREADY defines these helper functions above:
+     clamp(), toMinutes(), fmtTime()
+     (Your pizza calculator does.)
+  */
 
-  function toMinutes(h12, m, ampm){
-    let h = h12 % 12;
-    if (ampm === "PM") h += 12;
-    return h * 60 + m;
-  }
-
-  function fmtTime(mins){
-    mins = ((mins % 1440) + 1440) % 1440;
-    const h24 = Math.floor(mins / 60);
-    const m = mins % 60;
-    const ampm = h24 >= 12 ? "PM" : "AM";
-    const h12 = (h24 % 12) === 0 ? 12 : (h24 % 12);
-    return `${h12}:${String(m).padStart(2,"0")} ${ampm}`;
-  }
-
-  // =========================
-  // BREAD CALC (UPDATED)
-  // =========================
   function calcBread(){
     const loaves = +loavesEl.value || 0;
     const loafW = +loafWeightEl.value || 0;
 
     const baseHydration = (+breadHydrationEl.value || 0) / 100;
     const saltPct = (+breadSaltPctEl.value || 0) / 100;
-    const levainPct = (+breadLevainPctEl.value || 0) / 100; // levain total weight % of flour
+    const levainPct = (+breadLevainPctEl.value || 0) / 100;
     const autolyseMin = clamp(+breadAutolyseMinEl.value || 30, 0, 180);
 
     // Blend percents (normalise to 100)
@@ -416,43 +402,38 @@
 
     const semPct = nsem * 100;
 
-    // Auto hydration bump for coarse semolina (pizza-launch semolina)
+    // Auto hydration bump for coarse semolina
     let hydrationAdj = 0;
-    if (nsem > 0) hydrationAdj += Math.min(0.04, nsem * 0.5); // up to +4%
+    if (nsem > 0) hydrationAdj += Math.min(0.04, nsem * 0.5);
     const effectiveHydration = baseHydration + hydrationAdj;
 
-    const hydrationHint = (hydrationAdj > 0)
-      ? `Coarse semolina detected → auto hydration bump: <b>+${(hydrationAdj*100).toFixed(1)}%</b> (effective: <b>${(effectiveHydration*100).toFixed(1)}%</b>)`
-      : `Effective hydration: <b>${(effectiveHydration*100).toFixed(1)}%</b>`;
-    breadHydrationHint.innerHTML = hydrationHint;
+    breadHydrationHint.innerHTML =
+      (hydrationAdj > 0)
+        ? `Coarse semolina detected → auto hydration bump: <b>+${(hydrationAdj*100).toFixed(1)}%</b> (effective: <b>${(effectiveHydration*100).toFixed(1)}%</b>)`
+        : `Effective hydration: <b>${(effectiveHydration*100).toFixed(1)}%</b>`;
 
     const totalDough = loaves * loafW;
 
-    // Solve flour from dough, hydration, salt (levain not in denominator)
     const totalFlourAll = totalDough / (1 + effectiveHydration + saltPct);
 
-    // Levain (100% hydration)
-    const levainTotal = totalFlourAll * levainPct;
+    const levainTotal = totalFlourAll * levainPct;   // 100% hydration levain
     const levainFlour = levainTotal / 2;
     const levainWater = levainTotal / 2;
 
     const waterToAdd = Math.max(0, (totalFlourAll * effectiveHydration) - levainWater);
     const salt = totalFlourAll * saltPct;
 
-    // Flour totals by blend (TOTAL flour, including levain flour)
     const whiteTotal = totalFlourAll * nw;
     const wholeTotal = totalFlourAll * nww;
     const ryeTotal = totalFlourAll * nrye;
     const speltTotal = totalFlourAll * nsp;
     const semolinaTotal = totalFlourAll * nsem;
 
-    // Levain flour mode (IMPORTANT: semolina NEVER goes into levain)
-    const levainMode = breadLevainFlourModeEl.value; // "white" or "blend"
-    let levWhite = levainFlour; // default: all levain flour from white
-    let levWhole = 0, levRye = 0, levSpelt = 0;
+    // Levain flour allocation (semolina never in levain)
+    const levainMode = breadLevainFlourModeEl.value;
+    let levWhite = levainFlour, levWhole = 0, levRye = 0, levSpelt = 0;
 
     if (levainMode === "blend") {
-      // Match blend proportions BUT ignore semolina; renormalise across the other flours
       const nonSemSum = nw + nww + nrye + nsp;
       const rw  = nonSemSum > 0 ? (nw / nonSemSum) : 1;
       const rww = nonSemSum > 0 ? (nww / nonSemSum) : 0;
@@ -465,14 +446,12 @@
       levSpelt = levainFlour * rsp;
     }
 
-    // Flour to add by type (subtract levain flour allocation). Semolina always fully added to dough.
     const whiteAdd = Math.max(0, whiteTotal - levWhite);
     const wholeAdd = Math.max(0, wholeTotal - levWhole);
-    const ryeAdd = Math.max(0, ryeTotal - levRye);
+    const ryeAdd   = Math.max(0, ryeTotal - levRye);
     const speltAdd = Math.max(0, speltTotal - levSpelt);
     const semolinaAdd = Math.max(0, semolinaTotal);
 
-    // Blend advice
     const wholeGrainPct = (nww + nrye + nsp) * 100;
     const ryePct = nrye * 100;
     const spPct = nsp * 100;
@@ -504,7 +483,6 @@
       ${semSoak}
     `;
 
-    // Levain hint
     const lp = (+breadLevainPctEl.value || 0);
     let levainHint = "";
     if (lp <= 0) levainHint = "Levain 0% = not sourdough.";
@@ -527,8 +505,8 @@
       • Spelt: <b>${speltAdd.toFixed(0)} g</b><br>
       • Semolina (coarse): <b>${semolinaAdd.toFixed(0)} g</b><br>
 
-      <b>3) Levain (100% hydration):</b> <b>${(levainTotal).toFixed(0)} g</b><br>
-      <b>4) Salt:</b> <b>${(salt).toFixed(1)} g</b><br><br>
+      <b>3) Levain (100% hydration):</b> <b>${levainTotal.toFixed(0)} g</b><br>
+      <b>4) Salt:</b> <b>${salt.toFixed(1)} g</b><br><br>
 
       <small>
         Total dough: ${(loaves * loafW).toFixed(0)} g · Total flour: ${totalFlourAll.toFixed(0)} g ·
@@ -538,21 +516,15 @@
       </small>
     `;
 
-    // Simple schedule (very approximate)
     const temp = +breadTempEl.value || 22;
     const mixHour = clamp(+breadMixHourEl.value || 12, 1, 12);
     const mixMin  = clamp(+breadMixMinEl.value || 0, 0, 59);
     const mixAmPm = breadMixAmPmEl.value || "AM";
     const startAt = toMinutes(mixHour, mixMin, mixAmPm);
 
-    // Baseline at 22C and 20% levain: ~4.5h bulk
     const levainPctNum = (+breadLevainPctEl.value || 0);
     const bulkBase = 4.5 * (20 / Math.max(5, levainPctNum));
-
-    // Whole grains speed fermentation a bit
     const wholeSpeed = 1 - Math.min(0.18, (wholeGrainPct/100) * 0.25);
-
-    // Temp adjustment
     const tempAdj = Math.pow(1.18, (22 - temp) / 2);
 
     const bulkHours = clamp(bulkBase * wholeSpeed * tempAdj, 2.5, 9.0);
@@ -577,9 +549,7 @@
     `;
   }
 
-  // =========================
-  // ELEMENTS + PRESETS (BREAD)
-  // =========================
+  // Bread elements
   const breadPresetEl = document.getElementById("breadPreset");
   const loavesEl = document.getElementById("loaves");
   const loafWeightEl = document.getElementById("loafWeight");
@@ -635,9 +605,7 @@
 
   breadPresetEl.addEventListener("change", applyBreadPreset);
 
-  // =========================
-  // RECALC (BREAD ONLY)
-  // =========================
+  // Recalc for bread inputs only
   document.querySelectorAll("#tab-bread input, #tab-bread select").forEach(el => {
     el.addEventListener("input", calcBread);
     el.addEventListener("change", calcBread);
