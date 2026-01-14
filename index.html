@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 
-  <title>🍕 Sling Fwing – Sourdough Pizza Base Calculator Oh Yeaaaah! 🍕</title>
+  <title>🍕 Sling Fwing – Sourdough Pizza Party Calculator 🍕</title>
 
   <style>
     body{
@@ -63,15 +63,47 @@
       line-height:1.25;
     }
     .hint{ color:#666; font-size:0.92em; margin-top:8px; }
+
+    /* NEW helpers */
+    .warn{
+      margin-top:10px;
+      padding:10px;
+      border-radius:10px;
+      background:#fff7ed;
+      border:1px solid #fed7aa;
+      color:#7c2d12;
+      font-size:0.95em;
+      line-height:1.35;
+    }
+    .ok{
+      margin-top:10px;
+      padding:10px;
+      border-radius:10px;
+      background:#f0fdf4;
+      border:1px solid #bbf7d0;
+      color:#14532d;
+      font-size:0.95em;
+      line-height:1.35;
+    }
+    .pill{
+      display:inline-block;
+      padding:4px 8px;
+      border-radius:999px;
+      background:#e5e7eb;
+      font-size:0.85em;
+      font-weight:600;
+      margin-right:6px;
+    }
+    .muted{ color:#6b7280; }
   </style>
 </head>
 
 <body>
 
-  <h1>🍕 Sling Fwing – Sourdough Pizza Base Calculator Oh Yeaaaah! 🍕</h1>
+  <h1>🍕 Sling Fwing – Sourdough Pizza Party Calculator 🍕</h1>
   <p class="sub">
-    Matches Mourner Observable: levain % is <b>levain total weight</b> as % of flour (100% hydration levain).
-    Levain uses <b>High Grade</b> flour only.
+    Matches Mourner Observable: levain % is <b>levain total weight</b> as % of flour (<b>100% hydration levain</b>).
+    Levain uses <b>High Grade</b> flour only. Designed for <b>same-day paddock pizzas</b> (no fridge).
   </p>
 
   <!-- INPUTS -->
@@ -84,14 +116,14 @@
     <label>Dough weight per pizza (g) — 180g ~10" · 280g ~14"</label>
     <input id="doughWeight" type="number" value="225" min="100" step="5">
 
-    <label>Dough hydration (%) — 60% rolling pin · 70% hand stretch</label>
-    <input id="hydration" type="number" value="62" min="45" max="85" step="0.5">
+    <label>Dough hydration (%) — 58–62% paddock-friendly · higher = stickier</label>
+    <input id="hydration" type="number" value="60" min="45" max="85" step="0.5">
 
     <label>Salt (%) — usually 2.3% to 2.7%</label>
     <input id="saltPct" type="number" value="2.5" min="0" max="4" step="0.1">
 
-    <label>Levain (%) to flour ratio — (less chew 12% to 25% more chew)</label>
-    <input id="levainPct" type="number" value="15" min="0" max="60" step="1">
+    <label>Levain (%) to flour ratio — Pizza same-day often 2–4% (bread is higher)</label>
+    <input id="levainPct" type="number" value="3" min="0" max="60" step="0.5">
 
     <label>Flour split: Type 00 % of total flour (High Grade is the rest)</label>
     <input id="type00Pct" type="number" value="70" min="0" max="100" step="1">
@@ -114,7 +146,7 @@
   <div class="card">
     <h2>When to Mix & When to Fire</h2>
 
-    <label>Dough mixed at</label>
+    <label>Dough process starts at (Autolyse starts here: flour + water only)</label>
     <div class="row">
       <input id="mixHour" class="tiny" type="number" min="1" max="12" value="11">
       <span class="colon">:</span>
@@ -127,6 +159,25 @@
 
     <div id="fermentOut" class="bigout">—</div>
     <div class="hint" id="fermentHint"></div>
+  </div>
+
+  <!-- PIZZA WORKFLOW (NEW) -->
+  <div class="card">
+    <h2>Pizza Workflow (Same-Day, Paddock-Proof)</h2>
+
+    <label>Autolyse time (minutes) — flour + water only</label>
+    <input id="autolyseMin" type="number" value="30" min="0" step="5">
+
+    <label>Fold #1 after adding starter+salt (minutes)</label>
+    <input id="fold1Min" type="number" value="45" min="15" step="5">
+
+    <label>Fold #2 after Fold #1 (minutes)</label>
+    <input id="fold2Min" type="number" value="45" min="15" step="5">
+
+    <label>Relax time after balling (minutes) — kills snap-back</label>
+    <input id="relaxMin" type="number" value="150" min="60" step="15">
+
+    <div class="output" id="pizzaGuideOut">—</div>
   </div>
 
   <!-- STARTER PLANNING (LAST) -->
@@ -173,6 +224,12 @@
 
     const doughTemp = +doughTempEl.value || 24;
 
+    // Workflow inputs
+    const autolyseMin = clamp(+autolyseMinEl.value || 30, 0, 180);
+    const fold1Min = clamp(+fold1MinEl.value || 45, 15, 240);
+    const fold2Min = clamp(+fold2MinEl.value || 45, 15, 240);
+    const relaxMin = clamp(+relaxMinEl.value || 150, 60, 360);
+
     // Totals
     const totalDough = pizzas * doughW;
 
@@ -185,13 +242,13 @@
     const levainFlour = levainTotal / 2;
     const levainWater = levainTotal / 2;
 
-    // Observable "water" = water to ADD (target water minus levain water)
+    // Water to ADD (target water minus levain water)
     const waterToAdd = Math.max(0, (totalFlourAll * hydration) - levainWater);
 
-    // Salt (Observable uses total flour including levain flour)
+    // Salt (uses total flour including levain flour)
     const salt = totalFlourAll * saltPct;
 
-    // Observable "flour" output = flour to ADD (exclude levain flour)
+    // Flour to ADD (exclude levain flour)
     const flourToAdd = totalFlourAll - levainFlour;
 
     // Flour split (overall ratio includes levain flour)
@@ -201,15 +258,17 @@
     // High grade flour to add (levain flour already HG)
     const highGradeFlourToAdd = Math.max(0, highGradeTotalRequired - levainFlour);
 
-    // (Sanity: type00Flour + highGradeFlourToAdd ≈ flourToAdd)
-    // ---- OUTPUTS ----
     doughOut.innerHTML = `
-      <b>ADD THE FOLLOWING (in this order)</b><br><br>
-      <b>1. Water:</b> <b>${waterToAdd.toFixed(0)} g</b><br>
-      <b>2. Levain / Starter (100% hydration, High Grade):</b> <b>${levainTotal.toFixed(0)} g</b><br>
-      <b>3. Type 00 Pizza Flour:</b> <b>${type00Flour.toFixed(0)} g</b><br>
-      <b>4. High Grade Flour:</b> <b>${highGradeFlourToAdd.toFixed(0)} g</b><br>
-      <b>5. Salt (after autolyse):</b> <b>${salt.toFixed(1)} g</b><br><br>
+      <b>DO THIS ORDER (PIZZA OPTIMISED)</b><br><br>
+      <span class="pill">Autolyse</span> Mix <b>Water + Flour only</b> (shaggy), rest ${autolyseMin} min.<br><br>
+
+      <b>1) Water:</b> <b>${waterToAdd.toFixed(0)} g</b><br>
+      <b>2) Type 00 flour:</b> <b>${type00Flour.toFixed(0)} g</b><br>
+      <b>3) High Grade flour:</b> <b>${highGradeFlourToAdd.toFixed(0)} g</b><br><br>
+
+      <span class="pill">After autolyse</span><br>
+      <b>4) Levain (100% hydration, HG):</b> <b>${levainTotal.toFixed(0)} g</b><br>
+      <b>5) Salt:</b> <b>${salt.toFixed(1)} g</b><br><br>
 
       <small>
         Total dough: ${totalDough.toFixed(0)} g ·
@@ -227,13 +286,13 @@
     starterOut.innerHTML = `
       <b>Target levain:</b> <b>${levainTotal.toFixed(0)} g</b><br>
       <b>Air temp:</b> <b>${starterTemp.toFixed(1)} °C</b><br>
-      <b>Rough doubling time:</b> <b>${starterHours.toFixed(1)} h</b><br><br>
+      <b>Rough peak time:</b> <b>${starterHours.toFixed(1)} h</b><br><br>
       <b>Simple plan:</b><br>
       • Do <b>2 feeds</b> if you can so it peaks near mix time.<br>
       • If it’s flat/sour/collapsed: <b>feed again</b> and wait.
     `;
 
-    // Bake timing (heuristic)
+    // Bake timing (existing heuristic kept)
     const mixHour = clamp(+mixHourEl.value || 12, 1, 12);
     const mixMin  = clamp(+mixMinEl.value || 0, 0, 59);
     const mixAmPm = mixAmPmEl.value || "AM";
@@ -245,9 +304,71 @@
     const windowStart = mixAtMins + Math.round(primeStartHours * 60);
     const windowEnd   = mixAtMins + Math.round(primeEndHours * 60);
 
-    fermentOut.innerHTML = `<b>${fmtTime(windowStart)} – ${fmtTime(windowEnd)}</b> <b>BAKE TIME</b>`;
+    fermentOut.innerHTML = `<b>${fmtTime(windowStart)} – ${fmtTime(windowEnd)}</b> <b>IDEAL FIRING WINDOW</b>`;
     fermentHint.textContent =
-      `Ready window (approx): ${primeStartHours.toFixed(1)}–${primeEndHours.toFixed(1)} hours after mixing`;
+      `Heuristic firing window: ${primeStartHours.toFixed(1)}–${primeEndHours.toFixed(1)} hours after autolyse start (temp-based).`;
+
+    // ===== PIZZA WORKFLOW GUIDANCE (NEW) =====
+    const levainPctNum = (+levainPctEl.value || 0); // % shown to user
+    let levainMsg = "";
+    if (levainPctNum <= 0) {
+      levainMsg = `Levain is <b>0%</b> → not sourdough.`;
+    } else if (levainPctNum < 2) {
+      levainMsg = `Very low starter. Great extensibility, but may not be ready same-day unless warm/long timeline.`;
+    } else if (levainPctNum <= 4) {
+      levainMsg = `✅ <b>Pizza zone</b> for same-day: <b>2–4%</b> levain. Less snap-back, more forgiving stretch.`;
+    } else if (levainPctNum <= 8) {
+      levainMsg = `Moderate/high starter. Faster, but make sure you get a long final rest after balling.`;
+    } else {
+      levainMsg = `⚠️ Bread-leaning starter %. Expect tight dough + snap-back unless you ball early + rest a long time.`;
+    }
+
+    // Schedule from mix time
+    const tAutolyseStart = mixAtMins;
+    const tAutolyseEnd = tAutolyseStart + autolyseMin;
+
+    const tAddStarterSalt = tAutolyseEnd;
+    const tFold1 = tAddStarterSalt + fold1Min;
+    const tFold2 = tFold1 + fold2Min;
+
+    // Recommend ball time = start of bake window minus relax,
+    // but not before Fold #2 + 15min
+    let tBall = windowStart - relaxMin;
+    tBall = Math.max(tBall, tFold2 + 15);
+
+    const tReadyFromBalls = tBall + relaxMin;
+
+    let statusBox = "";
+    if (tReadyFromBalls > windowStart) {
+      statusBox = `
+        <div class="warn">
+          <b>Snap-back risk:</b> your ball relax finishes at <b>${fmtTime(tReadyFromBalls)}</b>,
+          which is after the firing window starts.<br><br>
+          Fix: <b>ball earlier</b> (reduce fold gaps), <b>start earlier</b>, or <b>reduce levain%</b>.
+        </div>
+      `;
+    } else {
+      statusBox = `
+        <div class="ok">
+          <b>Good shape:</b> balls have time to relax before firing. Expect easier stretching + less snap-back.
+        </div>
+      `;
+    }
+
+    pizzaGuideOut.innerHTML = `
+      <span class="pill">Order</span> <b>Water+Flour</b> → Autolyse → <b>Add starter + salt</b> → Fold #1 → Fold #2 → <b>Ball</b> → Relax → Bake<br><br>
+
+      <b>Suggested schedule</b><br>
+      • <b>${fmtTime(tAutolyseStart)}</b> Autolyse start (flour + water only, shaggy mix)<br>
+      • <b>${fmtTime(tAutolyseEnd)}</b> Add <b>starter + salt</b> (1–2 min gentle mix)<br>
+      • <b>${fmtTime(tFold1)}</b> Fold #1 (30–60 sec)<br>
+      • <b>${fmtTime(tFold2)}</b> Fold #2 (30–60 sec)<br>
+      • <b>${fmtTime(tBall)}</b> Divide + ball (don’t over-tighten)<br>
+      • <b>${fmtTime(tBall)}–${fmtTime(tReadyFromBalls)}</b> Relax/proof (this makes it stretch big)<br><br>
+
+      <b>Levain guidance:</b> ${levainMsg}
+      ${statusBox}
+    `;
   }
 
   // Elements
@@ -262,6 +383,12 @@
   const mixHourEl = document.getElementById("mixHour");
   const mixMinEl = document.getElementById("mixMin");
   const mixAmPmEl = document.getElementById("mixAmPm");
+
+  const autolyseMinEl = document.getElementById("autolyseMin");
+  const fold1MinEl = document.getElementById("fold1Min");
+  const fold2MinEl = document.getElementById("fold2Min");
+  const relaxMinEl = document.getElementById("relaxMin");
+  const pizzaGuideOut = document.getElementById("pizzaGuideOut");
 
   const doughOut = document.getElementById("doughOut");
   const starterTempEl = document.getElementById("starterTemp");
