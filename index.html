@@ -410,10 +410,14 @@
       bread: document.getElementById("tab-bread"),
     };
 
-    function show(tab){
-      tabBtns.forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
-      Object.entries(panes).forEach(([k, el]) => el.classList.toggle("active", k === tab));
-    }
+function show(tab){
+  tabBtns.forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+  Object.entries(panes).forEach(([k, el]) => el.classList.toggle("active", k === tab));
+
+  // force refresh of outputs on tab switch
+  if (tab === "bread") calcBread();
+  if (tab === "pizza") calcPizza();
+}
 
     tabBtns.forEach(btn => {
       btn.addEventListener("click", () => show(btn.dataset.tab));
