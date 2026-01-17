@@ -623,7 +623,6 @@
 // Baseline reference: 3% levain, ~60–62% hydration, ~24°C → ~6h to peak
 
 const levainPctNum = (+levainPctEl.value || 0);   // percent, e.g. 3
-const hydrationPct = (+hydrationEl.value || 0);   // percent, e.g. 60
 
 // Levain effect: more levain = faster (diminishing returns)
 const levainFactor = Math.pow(Math.max(levainPctNum, 0.5) / 3, -0.45);
