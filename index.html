@@ -619,8 +619,39 @@
     const mixAmPm = mixAmPmEl.value || "AM";
     const mixAtMins = toMinutes(mixHour, mixMin, mixAmPm);
 
-    const primeStartHours = 6 - (doughTemp - 22) * 0.6;
-    const primeEndHours   = primeStartHours + 2;
+  // --- Fermentation timing model (levain-aware) ---
+// Baseline reference: 3% levain, ~60–62% hydration, ~24°C → ~6h to peak
+
+const levainPctNum = (+levainPctEl.value || 0);   // percent, e.g. 3
+const hydrationPct = (+hydrationEl.value || 0);   // percent, e.g. 60
+
+// Levain effect: more levain = faster (diminishing returns)
+const levainFactor = Math.pow(Math.max(levainPctNum, 0.5) / 3, -0.45);
+
+// Temperature effect: ~18% speed change per 2°C
+const tempFactor = Math.pow(1.18, (24 - doughTemp) / 2);
+
+// Hydration effect: stiffer = slower, wetter = slightly faster
+const hydrationFactor = clamp(
+  1 + (62 - hydrationPct) * 0.015,
+  0.85,
+  1.25
+);
+
+// Predicted time to peak (hours after start)
+let primeStartHours = 6.0 * levainFactor * tempFactor * hydrationFactor;
+
+// Clamp to sane paddock limits
+primeStartHours = clamp(primeStartHours, 2.5, 14);
+
+// Higher levain = tighter peak window
+const windowWidthHours = clamp(
+  2.4 - Math.min(levainPctNum, 15) * 0.06,
+  1.4,
+  2.4
+);
+
+const primeEndHours = primeStartHours + windowWidthHours;
 
     const windowStart = mixAtMins + Math.round(primeStartHours * 60);
     const windowEnd   = mixAtMins + Math.round(primeEndHours * 60);
@@ -665,7 +696,6 @@
 
     // --- Snap-back risk signal (mostly relax time, plus small nudges) ---
     const hydrationPct = (+hydrationEl.value || 0);
-    const levainPctNum = (+levainPctEl.value || 0);
 
     let riskScore = 0; // higher = more snap-back risk
 
