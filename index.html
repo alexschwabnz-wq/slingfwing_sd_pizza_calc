@@ -613,50 +613,35 @@
       <div class="hint">If it’s flat/sour/collapsed: feed again and wait for peak.</div>
     `;
 
-    // Firing window heuristic + workflow schedule
-    const mixHour = clamp(+mixHourEl.value || 12, 1, 12);
-    const mixMin  = clamp(+mixMinEl.value || 0, 0, 59);
-    const mixAmPm = mixAmPmEl.value || "AM";
-    const mixAtMins = toMinutes(mixHour, mixMin, mixAmPm);
+// =========================
+// Firing window (levain-aware) + workflow schedule
+// =========================
+const mixHour = clamp(+mixHourEl.value || 12, 1, 12);
+const mixMin  = clamp(+mixMinEl.value || 0, 0, 59);
+const mixAmPm = mixAmPmEl.value || "AM";
+const mixAtMins = toMinutes(mixHour, mixMin, mixAmPm);
 
-  // --- Fermentation timing model (levain-aware) ---
-// Baseline reference: 3% levain, ~60–62% hydration, ~24°C → ~6h to peak
+// Levain-aware timing model
+const levainPctNum_F = (+levainPctEl.value || 0);     // percent
+const hydrationPct_F = (+hydrationEl.value || 0);     // percent
 
-const levainPctNum = (+levainPctEl.value || 0);   // percent, e.g. 3
+// Baseline: 3% levain, ~62% hydration, ~24°C → ~6h
+const levainFactor = Math.pow(Math.max(levainPctNum_F, 0.5) / 3, -0.45);
+const tempFactor   = Math.pow(1.18, (24 - doughTemp) / 2);
+const hydrationFactor = clamp(1 + (62 - hydrationPct_F) * 0.015, 0.85, 1.25);
 
-// Levain effect: more levain = faster (diminishing returns)
-const levainFactor = Math.pow(Math.max(levainPctNum, 0.5) / 3, -0.45);
-
-// Temperature effect: ~18% speed change per 2°C
-const tempFactor = Math.pow(1.18, (24 - doughTemp) / 2);
-
-// Hydration effect: stiffer = slower, wetter = slightly faster
-const hydrationFactor = clamp(
-  1 + (62 - hydrationPct) * 0.015,
-  0.85,
-  1.25
-);
-
-// Predicted time to peak (hours after start)
 let primeStartHours = 6.0 * levainFactor * tempFactor * hydrationFactor;
-
-// Clamp to sane paddock limits
 primeStartHours = clamp(primeStartHours, 2.5, 14);
 
-// Higher levain = tighter peak window
-const windowWidthHours = clamp(
-  2.4 - Math.min(levainPctNum, 15) * 0.06,
-  1.4,
-  2.4
-);
-
+const windowWidthHours = clamp(2.4 - Math.min(levainPctNum_F, 15) * 0.06, 1.4, 2.4);
 const primeEndHours = primeStartHours + windowWidthHours;
 
-    const windowStart = mixAtMins + Math.round(primeStartHours * 60);
-    const windowEnd   = mixAtMins + Math.round(primeEndHours * 60);
+const windowStart = mixAtMins + Math.round(primeStartHours * 60);
+const windowEnd   = mixAtMins + Math.round(primeEndHours * 60);
 
-    fermentOutEl.innerHTML = `<b>${fmtTime(windowStart)} – ${fmtTime(windowEnd)}</b> <b>IDEAL FIRING WINDOW</b>`;
-    fermentHintEl.textContent = `Heuristic: ${primeStartHours.toFixed(1)}–${primeEndHours.toFixed(1)} hours after start (temp sensitive).`;
+fermentOutEl.innerHTML = `<b>${fmtTime(windowStart)} – ${fmtTime(windowEnd)}</b> <b>IDEAL FIRING WINDOW</b>`;
+fermentHintEl.textContent =
+  `Model: levain ${levainPctNum_F.toFixed(1)}% · hydration ${hydrationPct_F.toFixed(1)}% · temp ${doughTemp.toFixed(1)}°C → ~${primeStartHours.toFixed(1)}–${primeEndHours.toFixed(1)}h`;
 
     const fold1Min = clamp(+fold1MinEl.value || 45, 15, 240);
     const fold2Min = clamp(+fold2MinEl.value || 45, 15, 240);
@@ -694,7 +679,6 @@ const primeEndHours = primeStartHours + windowWidthHours;
     }
 
     // --- Snap-back risk signal (mostly relax time, plus small nudges) ---
-    const hydrationPct = (+hydrationEl.value || 0);
 
     let riskScore = 0; // higher = more snap-back risk
 
