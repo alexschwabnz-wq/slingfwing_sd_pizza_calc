@@ -117,6 +117,8 @@
     }
     .tabpane{ display:none; }
     .tabpane.active{ display:block; }
+
+    #debugBox{ display:none; }
   </style>
 </head>
 
@@ -131,6 +133,9 @@
     <button type="button" class="tabbtn active" data-tab="pizza">Pizza Party</button>
     <button type="button" class="tabbtn" data-tab="bread">Sourdough Bread</button>
   </div>
+
+  <!-- DEBUG -->
+  <div id="debugBox" class="warn"></div>
 
   <!-- =========================
        PIZZA TAB
@@ -228,7 +233,7 @@
       </div>
 
       <div id="fermentOut" class="bigout">—</div>
-      <div class="hint" id="fermentHint"></div>
+      <div class="hint" id="fermentHint">—</div>
     </div>
 
     <div class="card">
@@ -261,7 +266,7 @@
   </div>
 
   <!-- =========================
-       BREAD TAB (FRIDGE TOGGLE)
+       BREAD TAB
   ========================== -->
   <div id="tab-bread" class="tabpane">
 
@@ -340,7 +345,7 @@
       <label>Autolyse time (minutes)</label>
       <input id="breadAutolyseMin" type="number" value="30" min="0" step="5">
 
-      <label>Room temperature (°C) for same-day schedule hint</label>
+      <label>Room temperature (°C) for schedule hint</label>
       <input id="breadTemp" type="number" value="22" step="0.5">
 
       <div class="output" id="breadBlendHint">—</div>
@@ -373,6 +378,16 @@
   </div>
 
 <script>
+  // ==============
+  // Error box (so failures are obvious)
+  // ==============
+  window.addEventListener("error", (e) => {
+    const box = document.getElementById("debugBox");
+    if (!box) return;
+    box.style.display = "block";
+    box.innerHTML = `<b>JS Error:</b> ${e.message}<br><span class="muted">${e.filename}:${e.lineno}:${e.colno}</span>`;
+  });
+
   // =========================
   // Helpers
   // =========================
@@ -400,556 +415,554 @@
   }
 
   // =========================
-  // Tabs
+  // DOM ready
   // =========================
-  (function setupTabs(){
+  window.addEventListener("DOMContentLoaded", () => {
+
+    // =========================
+    // Tabs
+    // =========================
     const tabBtns = Array.from(document.querySelectorAll(".tabbtn"));
     const panes = {
       pizza: document.getElementById("tab-pizza"),
       bread: document.getElementById("tab-bread"),
     };
 
-    function show(tab){
+    function showTab(tab){
       tabBtns.forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
       Object.entries(panes).forEach(([k, el]) => el.classList.toggle("active", k === tab));
-      if (tab === "bread") calcBread();
       if (tab === "pizza") calcPizza();
+      if (tab === "bread") calcBread();
     }
 
-    tabBtns.forEach(btn => btn.addEventListener("click", () => show(btn.dataset.tab)));
-    show("pizza");
-  })();
+    tabBtns.forEach(btn => btn.addEventListener("click", () => showTab(btn.dataset.tab)));
 
-  // =========================
-  // Elements – PIZZA
-  // =========================
-  const ovenEl = document.getElementById("oven");
-  const ovenHintEl = document.getElementById("ovenHint");
+    // =========================
+    // Elements – PIZZA
+    // =========================
+    const ovenEl = document.getElementById("oven");
+    const ovenHintEl = document.getElementById("ovenHint");
 
-  const pizzasEl = document.getElementById("pizzas");
-  const doughWeightEl = document.getElementById("doughWeight");
-  const hydrationEl = document.getElementById("hydration");
-  const saltPctEl = document.getElementById("saltPct");
-  const levainPctEl = document.getElementById("levainPct");
-  const type00PctEl = document.getElementById("type00Pct");
-  const doughTempEl = document.getElementById("doughTemp");
+    const pizzasEl = document.getElementById("pizzas");
+    const doughWeightEl = document.getElementById("doughWeight");
+    const hydrationEl = document.getElementById("hydration");
+    const saltPctEl = document.getElementById("saltPct");
+    const levainPctEl = document.getElementById("levainPct");
+    const type00PctEl = document.getElementById("type00Pct");
+    const doughTempEl = document.getElementById("doughTemp");
 
-  const mixHourEl = document.getElementById("mixHour");
-  const mixMinEl  = document.getElementById("mixMin");
-  const mixAmPmEl = document.getElementById("mixAmPm");
+    const mixHourEl = document.getElementById("mixHour");
+    const mixMinEl  = document.getElementById("mixMin");
+    const mixAmPmEl = document.getElementById("mixAmPm");
 
-  const autolyseMinEl = document.getElementById("autolyseMin");
-  const fold1MinEl = document.getElementById("fold1Min");
-  const fold2MinEl = document.getElementById("fold2Min");
-  const relaxMinEl = document.getElementById("relaxMin");
+    const autolyseMinEl = document.getElementById("autolyseMin");
+    const fold1MinEl = document.getElementById("fold1Min");
+    const fold2MinEl = document.getElementById("fold2Min");
+    const relaxMinEl = document.getElementById("relaxMin");
 
-  const doughOutEl = document.getElementById("doughOut");
-  const fermentOutEl = document.getElementById("fermentOut");
-  const fermentHintEl = document.getElementById("fermentHint");
-  const pizzaGuideOutEl = document.getElementById("pizzaGuideOut");
+    const doughOutEl = document.getElementById("doughOut");
+    const fermentOutEl = document.getElementById("fermentOut");
+    const fermentHintEl = document.getElementById("fermentHint");
+    const pizzaGuideOutEl = document.getElementById("pizzaGuideOut");
 
-  const buildStyleEl = document.getElementById("buildStyle");
-  const buildHintEl = document.getElementById("buildHint");
-  const sauceStyleEl = document.getElementById("sauceStyle");
-  const cheeseStyleEl = document.getElementById("cheeseStyle");
-  const canSizeEl = document.getElementById("canSize");
-  const margOutEl = document.getElementById("margOut");
+    const buildStyleEl = document.getElementById("buildStyle");
+    const buildHintEl = document.getElementById("buildHint");
+    const sauceStyleEl = document.getElementById("sauceStyle");
+    const cheeseStyleEl = document.getElementById("cheeseStyle");
+    const canSizeEl = document.getElementById("canSize");
+    const margOutEl = document.getElementById("margOut");
 
-  const starterTempEl = document.getElementById("starterTemp");
-  const starterOutEl = document.getElementById("starterOut");
+    const starterTempEl = document.getElementById("starterTemp");
+    const starterOutEl = document.getElementById("starterOut");
 
-  let userTouchedDoughWeight = false;
-  doughWeightEl.addEventListener("input", () => { userTouchedDoughWeight = true; });
+    let userTouchedDoughWeight = false;
+    doughWeightEl.addEventListener("input", () => { userTouchedDoughWeight = true; });
 
-  // =========================
-  // Elements – BREAD
-  // =========================
-  const breadFermentModeEl = document.getElementById("breadFermentMode");
-  const breadFridgeBlockEl = document.getElementById("breadFridgeBlock");
-  const breadFridgeTempEl = document.getElementById("breadFridgeTemp");
+    // =========================
+    // Elements – BREAD
+    // =========================
+    const breadFermentModeEl = document.getElementById("breadFermentMode");
+    const breadFridgeBlockEl = document.getElementById("breadFridgeBlock");
+    const breadFridgeTempEl = document.getElementById("breadFridgeTemp");
 
-  const breadPresetEl = document.getElementById("breadPreset");
-  const loavesEl = document.getElementById("loaves");
-  const loafWeightEl = document.getElementById("loafWeight");
-  const breadHydrationEl = document.getElementById("breadHydration");
-  const breadHydrationHintEl = document.getElementById("breadHydrationHint");
-  const breadSaltPctEl = document.getElementById("breadSaltPct");
-  const breadLevainPctEl = document.getElementById("breadLevainPct");
-  const breadLevainFlourModeEl = document.getElementById("breadLevainFlourMode");
+    const breadPresetEl = document.getElementById("breadPreset");
+    const loavesEl = document.getElementById("loaves");
+    const loafWeightEl = document.getElementById("loafWeight");
+    const breadHydrationEl = document.getElementById("breadHydration");
+    const breadHydrationHintEl = document.getElementById("breadHydrationHint");
+    const breadSaltPctEl = document.getElementById("breadSaltPct");
+    const breadLevainPctEl = document.getElementById("breadLevainPct");
+    const breadLevainFlourModeEl = document.getElementById("breadLevainFlourMode");
 
-  const breadWhitePctEl = document.getElementById("breadWhitePct");
-  const breadWholePctEl = document.getElementById("breadWholePct");
-  const breadRyePctEl = document.getElementById("breadRyePct");
-  const breadSpeltPctEl = document.getElementById("breadSpeltPct");
-  const breadSemolinaPctEl = document.getElementById("breadSemolinaPct");
+    const breadWhitePctEl = document.getElementById("breadWhitePct");
+    const breadWholePctEl = document.getElementById("breadWholePct");
+    const breadRyePctEl = document.getElementById("breadRyePct");
+    const breadSpeltPctEl = document.getElementById("breadSpeltPct");
+    const breadSemolinaPctEl = document.getElementById("breadSemolinaPct");
 
-  const breadAutolyseMinEl = document.getElementById("breadAutolyseMin");
-  const breadTempEl = document.getElementById("breadTemp");
+    const breadAutolyseMinEl = document.getElementById("breadAutolyseMin");
+    const breadTempEl = document.getElementById("breadTemp");
 
-  const breadBlendHintEl = document.getElementById("breadBlendHint");
-  const breadOutEl = document.getElementById("breadOut");
+    const breadBlendHintEl = document.getElementById("breadBlendHint");
+    const breadOutEl = document.getElementById("breadOut");
 
-  const breadMixHourEl = document.getElementById("breadMixHour");
-  const breadMixMinEl  = document.getElementById("breadMixMin");
-  const breadMixAmPmEl = document.getElementById("breadMixAmPm");
+    const breadMixHourEl = document.getElementById("breadMixHour");
+    const breadMixMinEl  = document.getElementById("breadMixMin");
+    const breadMixAmPmEl = document.getElementById("breadMixAmPm");
 
-  const breadWindowOutEl = document.getElementById("breadWindowOut");
-  const breadScheduleOutEl = document.getElementById("breadScheduleOut");
+    const breadWindowOutEl = document.getElementById("breadWindowOut");
+    const breadScheduleOutEl = document.getElementById("breadScheduleOut");
 
-  function syncBreadFridgeUI(){
-    const mode = breadFermentModeEl.value;
-    breadFridgeBlockEl.classList.toggle("hidden", mode === "same");
-  }
-
-  // =========================
-  // PIZZA CALC
-  // =========================
-  function calcPizza(){
-    const oven = ovenEl.value;
-
-    if (oven === "small") {
-      ovenHintEl.innerHTML = `<span class="pill">Small Ooni</span> Aim for <b>10.5–11"</b> pizzas. Suggested dough ball: <b>190–200g</b>.`;
-      if (!userTouchedDoughWeight) doughWeightEl.value = 200;
-    } else {
-      ovenHintEl.innerHTML = `<span class="pill">Large Ooni</span> Aim for <b>13.5–14.5"</b> pizzas. Suggested dough ball: <b>260–270g</b>.`;
-      if (!userTouchedDoughWeight) doughWeightEl.value = 265;
+    function syncBreadFridgeUI(){
+      const mode = breadFermentModeEl.value;
+      breadFridgeBlockEl.classList.toggle("hidden", mode === "same");
     }
 
-    const pizzas = +pizzasEl.value || 0;
-    const doughW = +doughWeightEl.value || 0;
-    const hydration = (+hydrationEl.value || 0) / 100;
-    const saltPct = (+saltPctEl.value || 0) / 100;
-    const levainPct = (+levainPctEl.value || 0) / 100;
-    const type00Pct = (+type00PctEl.value || 0) / 100;
-    const hgPct = 1 - type00Pct;
-    const doughTemp = +doughTempEl.value || 24;
+    // =========================
+    // PIZZA CALC
+    // =========================
+    function calcPizza(){
+      const oven = ovenEl.value;
 
-    const totalDough = pizzas * doughW;
+      if (oven === "small") {
+        ovenHintEl.innerHTML = `<span class="pill">Small Ooni</span> Aim for <b>10.5–11"</b> pizzas. Suggested dough ball: <b>190–200g</b>.`;
+        if (!userTouchedDoughWeight) doughWeightEl.value = 200;
+      } else {
+        ovenHintEl.innerHTML = `<span class="pill">Large Ooni</span> Aim for <b>13.5–14.5"</b> pizzas. Suggested dough ball: <b>260–270g</b>.`;
+        if (!userTouchedDoughWeight) doughWeightEl.value = 265;
+      }
 
-    const totalFlourAll = totalDough / (1 + hydration + saltPct);
+      const pizzas = +pizzasEl.value || 0;
+      const doughW = +doughWeightEl.value || 0;
 
-    const levainTotal = totalFlourAll * levainPct;
-    const levainFlour = levainTotal / 2;
-    const levainWater = levainTotal / 2;
+      const hydration = (+hydrationEl.value || 0) / 100;
+      const saltPct = (+saltPctEl.value || 0) / 100;
 
-    const waterToAdd = Math.max(0, (totalFlourAll * hydration) - levainWater);
-    const salt = totalFlourAll * saltPct;
+      const levainPct = (+levainPctEl.value || 0) / 100; // fraction
+      const levainPctNum = (+levainPctEl.value || 0);    // percent
 
-    const type00Flour = totalFlourAll * type00Pct;
-    const highGradeTotalRequired = totalFlourAll * hgPct;
-    const highGradeFlourToAdd = Math.max(0, highGradeTotalRequired - levainFlour);
+      const type00Pct = (+type00PctEl.value || 0) / 100;
+      const hgPct = 1 - type00Pct;
 
-    const autolyseMin = clamp(+autolyseMinEl.value || 30, 0, 180);
+      const doughTemp = +doughTempEl.value || 24;
 
-    doughOutEl.innerHTML = `
-      <b>ORDER (PIZZA OPTIMISED)</b><br><br>
-      <span class="pill">Autolyse</span> Mix <b>Water + Flour only</b> (shaggy), rest <b>${autolyseMin} min</b>.<br><br>
+      const totalDough = pizzas * doughW;
 
-      <b>Water:</b> <b>${waterToAdd.toFixed(0)} g</b><br>
-      <b>Type 00 flour:</b> <b>${type00Flour.toFixed(0)} g</b><br>
-      <b>High Grade flour:</b> <b>${highGradeFlourToAdd.toFixed(0)} g</b><br><br>
+      // Flour from dough (levain treated as flour+water already inside totals)
+      const totalFlourAll = totalDough / (1 + hydration + saltPct);
 
-      <span class="pill">After autolyse</span><br>
-      <b>Levain (100% hydration):</b> <b>${levainTotal.toFixed(0)} g</b><br>
-      <b>Salt:</b> <b>${salt.toFixed(1)} g</b><br><br>
+      // Levain 100% hydration
+      const levainTotal = totalFlourAll * levainPct;
+      const levainFlour = levainTotal / 2;
+      const levainWater = levainTotal / 2;
 
-      <small>
-        Total dough: ${totalDough.toFixed(0)} g · Total flour: ${totalFlourAll.toFixed(0)} g ·
-        Hydration: ${(hydration*100).toFixed(1)}% · Salt: ${(saltPct*100).toFixed(1)}% · Levain: ${(levainPct*100).toFixed(1)}%
-      </small>
-    `;
+      const waterToAdd = Math.max(0, (totalFlourAll * hydration) - levainWater);
+      const salt = totalFlourAll * saltPct;
 
-    // Sauce + cheese
-    const buildStyle = buildStyleEl.value;
-    const pizzasN = Math.max(0, pizzas);
+      // Flour split (levain assumed High Grade)
+      const type00Flour = totalFlourAll * type00Pct;
+      const highGradeTotalRequired = totalFlourAll * hgPct;
+      const highGradeFlourToAdd = Math.max(0, highGradeTotalRequired - levainFlour);
 
-    let sauceBase = (oven === "small") ? 60 : 80;
-    let cheeseBase = (oven === "small") ? 80 : 110;
+      const autolyseMin = clamp(+autolyseMinEl.value || 30, 0, 180);
 
-    if (buildStyle === "rolled") {
-      sauceBase = Math.round(sauceBase * 1.25);
-      cheeseBase = Math.round(cheeseBase * 1.15);
-      buildHintEl.innerHTML = `<span class="pill">Rolled</span> Even thickness + more centre area → estimates bumped.`;
-    } else {
-      buildHintEl.innerHTML = `<span class="pill">Hand-stretched</span> Rim eats area → conservative estimates, less waste.`;
+      doughOutEl.innerHTML = `
+        <b>ORDER (PIZZA OPTIMISED)</b><br><br>
+        <span class="pill">Autolyse</span> Mix <b>Water + Flour only</b> (shaggy), rest <b>${autolyseMin} min</b>.<br><br>
+
+        <b>Water:</b> <b>${waterToAdd.toFixed(0)} g</b><br>
+        <b>Type 00 flour:</b> <b>${type00Flour.toFixed(0)} g</b><br>
+        <b>High Grade flour:</b> <b>${highGradeFlourToAdd.toFixed(0)} g</b><br><br>
+
+        <span class="pill">After autolyse</span><br>
+        <b>Levain (100% hydration):</b> <b>${levainTotal.toFixed(0)} g</b><br>
+        <b>Salt:</b> <b>${salt.toFixed(1)} g</b><br><br>
+
+        <small>
+          Total dough: ${totalDough.toFixed(0)} g · Total flour: ${totalFlourAll.toFixed(0)} g ·
+          Hydration: ${(hydration*100).toFixed(1)}% · Salt: ${(saltPct*100).toFixed(1)}% · Levain: ${levainPctNum.toFixed(1)}%
+        </small>
+      `;
+
+      // Sauce + cheese
+      const buildStyle = buildStyleEl.value;
+      const pizzasN = Math.max(0, pizzas);
+
+      let sauceBase = (oven === "small") ? 60 : 80;
+      let cheeseBase = (oven === "small") ? 80 : 110;
+
+      if (buildStyle === "rolled") {
+        sauceBase = Math.round(sauceBase * 1.25);
+        cheeseBase = Math.round(cheeseBase * 1.15);
+        buildHintEl.innerHTML = `<span class="pill">Rolled</span> Even thickness + more centre area → estimates bumped.`;
+      } else {
+        buildHintEl.innerHTML = `<span class="pill">Hand-stretched</span> Rim eats area → conservative estimates, less waste.`;
+      }
+
+      const saucePer = Math.round(sauceBase * coverageMultiplier(sauceStyleEl.value));
+      const cheesePer = Math.round(cheeseBase * coverageMultiplier(cheeseStyleEl.value));
+
+      const sauceTotal = pizzasN * saucePer;
+      const cheeseTotal = pizzasN * cheesePer;
+
+      const canSize = +canSizeEl.value || 425;
+      const sauceWithBuffer = Math.round(sauceTotal * 1.12);
+      const cansNeeded = Math.ceil(sauceWithBuffer / canSize);
+
+      const cheeseWithBuffer = Math.round(cheeseTotal * 1.10);
+      const cheeseKg = (cheeseWithBuffer / 1000).toFixed(2);
+
+      margOutEl.innerHTML = `
+        <b>Per pizza (Margherita baseline)</b><br>
+        <b>Sauce:</b> <b>${saucePer} g</b><br>
+        <b>Cheese:</b> <b>${cheesePer} g</b><br><br>
+
+        <b>Total for ${pizzasN} pizzas</b><br>
+        <b>Sauce:</b> ${sauceTotal.toFixed(0)} g → with buffer: <b>${sauceWithBuffer} g</b> → buy <b>${cansNeeded}</b> × <b>${canSize} g</b><br>
+        <b>Cheese:</b> ${cheeseTotal.toFixed(0)} g → with buffer: <b>${cheeseWithBuffer} g</b> → buy <b>${cheeseKg} kg</b>
+      `;
+
+      // Starter planning
+      const starterTemp = +starterTempEl.value || 22;
+      const starterHours = clamp(12 - (starterTemp - 20) * 0.8, 4, 18);
+      starterOutEl.innerHTML = `
+        <b>Target levain:</b> <b>${levainTotal.toFixed(0)} g</b><br>
+        <b>Air temp:</b> <b>${starterTemp.toFixed(1)} °C</b><br>
+        <b>Rough peak time:</b> <b>${starterHours.toFixed(1)} h</b><br>
+        <div class="hint">If it’s flat/sour/collapsed: feed again and wait for peak.</div>
+      `;
+
+      // Firing window (levain-aware)
+      const mixHour = clamp(+mixHourEl.value || 12, 1, 12);
+      const mixMin  = clamp(+mixMinEl.value || 0, 0, 59);
+      const mixAmPm = mixAmPmEl.value || "AM";
+      const mixAtMins = toMinutes(mixHour, mixMin, mixAmPm);
+
+      const hydrationPctNum = (+hydrationEl.value || 0);
+
+      // Baseline: 3% levain, 62% hydration, 24°C -> ~6h
+      const levainFactor = Math.pow(Math.max(levainPctNum, 0.5) / 3, -0.45);
+      const tempFactor   = Math.pow(1.18, (24 - doughTemp) / 2);
+      const hydrationFactor = clamp(1 + (62 - hydrationPctNum) * 0.015, 0.85, 1.25);
+
+      let primeStartHours = 6.0 * levainFactor * tempFactor * hydrationFactor;
+      primeStartHours = clamp(primeStartHours, 2.5, 14);
+
+      const windowWidthHours = clamp(2.4 - Math.min(levainPctNum, 15) * 0.06, 1.4, 2.4);
+      const primeEndHours = primeStartHours + windowWidthHours;
+
+      const windowStart = mixAtMins + Math.round(primeStartHours * 60);
+      const windowEnd   = mixAtMins + Math.round(primeEndHours * 60);
+
+      fermentOutEl.innerHTML = `<b>${fmtTime(windowStart)} – ${fmtTime(windowEnd)}</b> <b>IDEAL FIRING WINDOW</b>`;
+      fermentHintEl.textContent = `Model: levain ${levainPctNum.toFixed(1)}% · hydration ${hydrationPctNum.toFixed(1)}% · temp ${doughTemp.toFixed(1)}°C → ~${primeStartHours.toFixed(1)}–${primeEndHours.toFixed(1)}h`;
+
+      // Workflow schedule + snapback signal
+      const fold1Min = clamp(+fold1MinEl.value || 45, 15, 240);
+      const fold2Min = clamp(+fold2MinEl.value || 45, 15, 240);
+      const relaxMin = clamp(+relaxMinEl.value || 150, 0, 480);
+
+      const tAutolyseStart = mixAtMins;
+      const tAutolyseEnd = tAutolyseStart + autolyseMin;
+      const tFold1 = tAutolyseEnd + fold1Min;
+      const tFold2 = tFold1 + fold2Min;
+
+      let tBall = windowStart - relaxMin;
+      tBall = Math.max(tBall, tFold2 + 15);
+      const tRelaxDone = tBall + relaxMin;
+
+      let levMsg = "";
+      if (levainPctNum <= 0) levMsg = `Levain 0% → not sourdough.`;
+      else if (levainPctNum <= 4) levMsg = `✅ Pizza zone: <b>2–4%</b> is calm + stretchy.`;
+      else if (levainPctNum <= 8) levMsg = `Moderate starter: faster, give balls longer rest.`;
+      else levMsg = `⚠️ High starter: can feel tight early, then slack later.`;
+
+      const restBeforeWindowMin = Math.round(windowStart - tBall);
+      let timingClass = "ok";
+      let timingMsg = `Timing looks good: <b>${restBeforeWindowMin} min</b> ball rest before the window.`;
+      if (restBeforeWindowMin < 90){ timingClass="warn"; timingMsg = `Timing is borderline: <b>${restBeforeWindowMin} min</b> ball rest before the window.`; }
+      if (restBeforeWindowMin < 45){ timingClass="warn"; timingMsg = `Timing is tight: only <b>${restBeforeWindowMin} min</b> ball rest before the window.`; }
+
+      let riskScore = 0;
+      if (relaxMin < 45) riskScore += 3;
+      else if (relaxMin < 90) riskScore += 2;
+      else if (relaxMin < 120) riskScore += 1;
+
+      if (hydrationPctNum <= 58) riskScore += 1;
+      if (hydrationPctNum >= 68) riskScore -= 1;
+
+      if (levainPctNum >= 8) riskScore -= 1;
+      if (levainPctNum >= 15) riskScore -= 1;
+
+      riskScore = clamp(riskScore, 0, 4);
+
+      let riskLabel = "Low";
+      let riskClass = "ok";
+      if (riskScore >= 3){ riskLabel = "High"; riskClass = "warn"; }
+      else if (riskScore >= 2){ riskLabel = "Medium"; riskClass = "warn"; }
+
+      pizzaGuideOutEl.innerHTML = `
+        <span class="pill">Process</span> Water+Flour → Autolyse → Add levain+salt → Fold → Fold → Ball → Relax → Bake<br><br>
+        • <b>${fmtTime(tAutolyseStart)}</b> Autolyse start<br>
+        • <b>${fmtTime(tAutolyseEnd)}</b> Add levain + salt<br>
+        • <b>${fmtTime(tFold1)}</b> Fold #1<br>
+        • <b>${fmtTime(tFold2)}</b> Fold #2<br>
+        • <b>${fmtTime(tBall)}</b> Ball up<br>
+        • <b>${fmtTime(tBall)}–${fmtTime(tRelaxDone)}</b> Relax<br><br>
+        <b>Levain guidance:</b> ${levMsg}
+        <div class="${timingClass}">
+          <b>${timingMsg}</b><br>
+          <span class="muted">Ball at <b>${fmtTime(tBall)}</b> · Window starts <b>${fmtTime(windowStart)}</b></span>
+        </div>
+        <div class="${riskClass}">
+          <b>Snap-back risk: ${riskLabel}</b><br>
+          <span class="muted">Based on relax ${relaxMin} min, hydration ${hydrationPctNum}%, levain ${levainPctNum}%.</span>
+        </div>
+      `;
     }
 
-    const saucePer = Math.round(sauceBase * coverageMultiplier(sauceStyleEl.value));
-    const cheesePer = Math.round(cheeseBase * coverageMultiplier(cheeseStyleEl.value));
+    // =========================
+    // BREAD CALC
+    // =========================
+    function calcBread(){
+      syncBreadFridgeUI();
 
-    const sauceTotal = pizzasN * saucePer;
-    const cheeseTotal = pizzasN * cheesePer;
+      const loaves = +loavesEl.value || 0;
+      const loafW = +loafWeightEl.value || 0;
 
-    const canSize = +canSizeEl.value || 425;
-    const sauceWithBuffer = Math.round(sauceTotal * 1.12);
-    const cansNeeded = Math.ceil(sauceWithBuffer / canSize);
+      const baseHydration = (+breadHydrationEl.value || 0) / 100;
+      const saltPct = (+breadSaltPctEl.value || 0) / 100;
+      const levainPct = (+breadLevainPctEl.value || 0) / 100;
+      const levainPctNum = (+breadLevainPctEl.value || 0);
+      const autolyseMin = clamp(+breadAutolyseMinEl.value || 30, 0, 180);
 
-    const cheeseWithBuffer = Math.round(cheeseTotal * 1.10);
-    const cheeseKg = (cheeseWithBuffer / 1000).toFixed(2);
+      // Normalise blend
+      let w  = +breadWhitePctEl.value || 0;
+      let ww = +breadWholePctEl.value || 0;
+      let rye = +breadRyePctEl.value || 0;
+      let sp  = +breadSpeltPctEl.value || 0;
+      let sem = +breadSemolinaPctEl.value || 0;
 
-    margOutEl.innerHTML = `
-      <b>Per pizza (Margherita baseline)</b><br>
-      <b>Sauce:</b> <b>${saucePer} g</b><br>
-      <b>Cheese:</b> <b>${cheesePer} g</b><br><br>
+      let sum = w + ww + rye + sp + sem;
+      if (sum <= 0) { w = 100; ww = rye = sp = sem = 0; sum = 100; }
 
-      <b>Total for ${pizzasN} pizzas</b><br>
-      <b>Sauce:</b> ${sauceTotal.toFixed(0)} g → with buffer: <b>${sauceWithBuffer} g</b> → buy <b>${cansNeeded}</b> × <b>${canSize} g</b><br>
-      <b>Cheese:</b> ${cheeseTotal.toFixed(0)} g → with buffer: <b>${cheeseWithBuffer} g</b> → buy <b>${cheeseKg} kg</b>
-    `;
+      const nw  = w  / sum;
+      const nww = ww / sum;
+      const nrye = rye / sum;
+      const nsp = sp / sum;
+      const nsem = sem / sum;
 
-    // Starter planning (simple)
-    const starterTemp = +starterTempEl.value || 22;
-    const starterHours = clamp(12 - (starterTemp - 20) * 0.8, 4, 18);
-    starterOutEl.innerHTML = `
-      <b>Target levain:</b> <b>${levainTotal.toFixed(0)} g</b><br>
-      <b>Air temp:</b> <b>${starterTemp.toFixed(1)} °C</b><br>
-      <b>Rough peak time:</b> <b>${starterHours.toFixed(1)} h</b><br>
-      <div class="hint">If it’s flat/sour/collapsed: feed again and wait for peak.</div>
-    `;
+      // Semolina hydration bump (coarse)
+      let hydrationAdj = 0;
+      if (nsem > 0) hydrationAdj += Math.min(0.04, nsem * 0.5);
+      const effectiveHydration = baseHydration + hydrationAdj;
 
-    // Firing window (levain-aware) + workflow schedule
-    const mixHour = clamp(+mixHourEl.value || 12, 1, 12);
-    const mixMin  = clamp(+mixMinEl.value || 0, 0, 59);
-    const mixAmPm = mixAmPmEl.value || "AM";
-    const mixAtMins = toMinutes(mixHour, mixMin, mixAmPm);
+      breadHydrationHintEl.innerHTML =
+        hydrationAdj > 0
+          ? `Coarse semolina detected → auto hydration bump: <b>+${(hydrationAdj*100).toFixed(1)}%</b> (effective: <b>${(effectiveHydration*100).toFixed(1)}%</b>)`
+          : `Effective hydration: <b>${(effectiveHydration*100).toFixed(1)}%</b>`;
 
-    const levainPctNum_F = (+levainPctEl.value || 0);
-    const hydrationPct_F = (+hydrationEl.value || 0);
+      const totalDough = loaves * loafW;
 
-    const levainFactor = Math.pow(Math.max(levainPctNum_F, 0.5) / 3, -0.45);
-    const tempFactor   = Math.pow(1.18, (24 - doughTemp) / 2);
-    const hydrationFactor = clamp(1 + (62 - hydrationPct_F) * 0.015, 0.85, 1.25);
+      const totalFlourAll = totalDough / (1 + effectiveHydration + saltPct);
 
-    let primeStartHours = 6.0 * levainFactor * tempFactor * hydrationFactor;
-    primeStartHours = clamp(primeStartHours, 2.5, 14);
+      const levainTotal = totalFlourAll * levainPct;
+      const levainFlour = levainTotal / 2;
+      const levainWater = levainTotal / 2;
 
-    const windowWidthHours = clamp(2.4 - Math.min(levainPctNum_F, 15) * 0.06, 1.4, 2.4);
-    const primeEndHours = primeStartHours + windowWidthHours;
+      const waterToAdd = Math.max(0, (totalFlourAll * effectiveHydration) - levainWater);
+      const salt = totalFlourAll * saltPct;
 
-    const windowStart = mixAtMins + Math.round(primeStartHours * 60);
-    const windowEnd   = mixAtMins + Math.round(primeEndHours * 60);
+      const whiteTotal = totalFlourAll * nw;
+      const wholeTotal = totalFlourAll * nww;
+      const ryeTotal = totalFlourAll * nrye;
+      const speltTotal = totalFlourAll * nsp;
+      const semolinaTotal = totalFlourAll * nsem;
 
-    fermentOutEl.innerHTML = `<b>${fmtTime(windowStart)} – ${fmtTime(windowEnd)}</b> <b>IDEAL FIRING WINDOW</b>`;
-    fermentHintEl.textContent =
-      `Model: levain ${levainPctNum_F.toFixed(1)}% · hydration ${hydrationPct_F.toFixed(1)}% · temp ${doughTemp.toFixed(1)}°C → ~${primeStartHours.toFixed(1)}–${primeEndHours.toFixed(1)}h`;
+      // Levain flour allocation (no semolina in levain)
+      const levainMode = breadLevainFlourModeEl.value;
+      let levWhite = levainFlour, levWhole = 0, levRye = 0, levSpelt = 0;
 
-    const fold1Min = clamp(+fold1MinEl.value || 45, 15, 240);
-    const fold2Min = clamp(+fold2MinEl.value || 45, 15, 240);
-    const relaxMin = clamp(+relaxMinEl.value || 150, 60, 360);
+      if (levainMode === "blend") {
+        const nonSemSum = nw + nww + nrye + nsp;
+        const rw   = nonSemSum > 0 ? (nw / nonSemSum) : 1;
+        const rww  = nonSemSum > 0 ? (nww / nonSemSum) : 0;
+        const rrye = nonSemSum > 0 ? (nrye / nonSemSum) : 0;
+        const rsp  = nonSemSum > 0 ? (nsp / nonSemSum) : 0;
 
-    const tAutolyseStart = mixAtMins;
-    const tAutolyseEnd = tAutolyseStart + autolyseMin;
-    const tFold1 = tAutolyseEnd + fold1Min;
-    const tFold2 = tFold1 + fold2Min;
+        levWhite = levainFlour * rw;
+        levWhole = levainFlour * rww;
+        levRye   = levainFlour * rrye;
+        levSpelt = levainFlour * rsp;
+      }
 
-    let tBall = windowStart - relaxMin;
-    tBall = Math.max(tBall, tFold2 + 15);
-    const tRelaxDone = tBall + relaxMin;
+      const whiteAdd = Math.max(0, whiteTotal - levWhite);
+      const wholeAdd = Math.max(0, wholeTotal - levWhole);
+      const ryeAdd = Math.max(0, ryeTotal - levRye);
+      const speltAdd = Math.max(0, speltTotal - levSpelt);
+      const semolinaAdd = Math.max(0, semolinaTotal);
 
-    const levNum = (+levainPctEl.value || 0);
-    let levMsg = "";
-    if (levNum <= 0) levMsg = `Levain 0% → not sourdough.`;
-    else if (levNum <= 4) levMsg = `✅ Pizza zone: <b>2–4%</b> is calm + stretchy.`;
-    else if (levNum <= 8) levMsg = `Moderate starter: faster, give balls longer rest.`;
-    else levMsg = `⚠️ High starter: can feel tight early, then slack later.`;
+      const wholeGrainPct = (nww + nrye + nsp) * 100;
+      const semPct = nsem * 100;
 
-    const restBeforeWindowMin = Math.round(windowStart - tBall);
-    let timingMsg = "";
-    let timingClass = "ok";
+      breadBlendHintEl.innerHTML = `
+        <b>Blend check:</b><br>
+        White ${(nw*100).toFixed(0)}% · Whole ${(nww*100).toFixed(0)}% · Rye ${(nrye*100).toFixed(0)}% · Spelt ${(nsp*100).toFixed(0)}% · Semolina ${(nsem*100).toFixed(0)}%<br>
+        <span class="muted">
+          ${semPct > 8 ? "⚠️ High semolina: pre-soak recommended. " : ""}
+          ${wholeGrainPct <= 25 ? "✅ Nice balance for lift + flavour." : "Higher wholegrain tightens crumb—watch bulk."}
+        </span>
+      `;
 
-    if (restBeforeWindowMin < 45){
-      timingClass = "warn";
-      timingMsg = `Timing is tight: only <b>${restBeforeWindowMin} min</b> ball rest before the window.`;
-    } else if (restBeforeWindowMin < 90){
-      timingClass = "warn";
-      timingMsg = `Timing is borderline: <b>${restBeforeWindowMin} min</b> ball rest before the window.`;
-    } else {
-      timingMsg = `Timing looks good: <b>${restBeforeWindowMin} min</b> ball rest before the window.`;
-    }
+      breadOutEl.innerHTML = `
+        <b>Totals for ${loaves} loaf/loaves</b><br><br>
 
-    const hydrationPct = hydrationPct_F;
-    const levainPctNum = levainPctNum_F;
+        <b>Autolyse (optional):</b> Flour + Water only, rest <b>${autolyseMin} min</b>.<br><br>
 
-    let riskScore = 0;
-    if (relaxMin < 45) riskScore += 3;
-    else if (relaxMin < 90) riskScore += 2;
-    else if (relaxMin < 120) riskScore += 1;
+        <b>ADD THIS</b><br>
+        <b>1) Water to add:</b> <b>${waterToAdd.toFixed(0)} g</b><br><br>
 
-    if (hydrationPct <= 58) riskScore += 1;
-    if (hydrationPct >= 68) riskScore -= 1;
+        <b>2) Flour to add:</b><br>
+        • White: <b>${whiteAdd.toFixed(0)} g</b><br>
+        • Whole wheat: <b>${wholeAdd.toFixed(0)} g</b><br>
+        • Rye: <b>${ryeAdd.toFixed(0)} g</b><br>
+        • Spelt: <b>${speltAdd.toFixed(0)} g</b><br>
+        • Semolina: <b>${semolinaAdd.toFixed(0)} g</b><br><br>
 
-    if (levainPctNum >= 8) riskScore -= 1;
-    if (levainPctNum >= 15) riskScore -= 1;
+        <b>3) Levain (100%):</b> <b>${levainTotal.toFixed(0)} g</b><br>
+        <b>4) Salt:</b> <b>${salt.toFixed(1)} g</b><br><br>
 
-    riskScore = clamp(riskScore, 0, 4);
+        <small>
+          Total dough: ${(loaves * loafW).toFixed(0)} g · Total flour: ${totalFlourAll.toFixed(0)} g ·
+          Hydration: ${(baseHydration*100).toFixed(1)}% (effective ${(effectiveHydration*100).toFixed(1)}%) ·
+          Salt: ${(saltPct*100).toFixed(1)}% · Levain: ${(levainPct*100).toFixed(1)}%
+        </small>
+      `;
 
-    let riskLabel = "Low";
-    let riskClass = "ok";
-    if (riskScore >= 3){ riskLabel = "High"; riskClass = "warn"; }
-    else if (riskScore >= 2){ riskLabel = "Medium"; riskClass = "warn"; }
+      // Schedule
+      const mode = breadFermentModeEl.value;
+      const temp = +breadTempEl.value || 22;
 
-    const statusBox = `
-      <div class="${timingClass}">
-        <b>${timingMsg}</b><br>
-        <span class="muted">Ball at <b>${fmtTime(tBall)}</b> · Window starts <b>${fmtTime(windowStart)}</b></span>
-      </div>
-      <div class="${riskClass}">
-        <b>Snap-back risk: ${riskLabel}</b><br>
-        <span class="muted">Based on relax ${relaxMin} min, hydration ${hydrationPct}%, levain ${levainPctNum}%.</span>
-      </div>
-    `;
+      const mixHour = clamp(+breadMixHourEl.value || 12, 1, 12);
+      const mixMin  = clamp(+breadMixMinEl.value || 0, 0, 59);
+      const mixAmPm = breadMixAmPmEl.value || "AM";
+      const startAt = toMinutes(mixHour, mixMin, mixAmPm);
 
-    pizzaGuideOutEl.innerHTML = `
-      <span class="pill">Process</span> Water+Flour → Autolyse → Add levain+salt → Fold → Fold → Ball → Relax → Bake<br><br>
-      • <b>${fmtTime(tAutolyseStart)}</b> Autolyse start<br>
-      • <b>${fmtTime(tAutolyseEnd)}</b> Add levain + salt<br>
-      • <b>${fmtTime(tFold1)}</b> Fold #1<br>
-      • <b>${fmtTime(tFold2)}</b> Fold #2<br>
-      • <b>${fmtTime(tBall)}</b> Ball up<br>
-      • <b>${fmtTime(tBall)}–${fmtTime(tRelaxDone)}</b> Relax<br><br>
-      <b>Levain guidance:</b> ${levMsg}
-      ${statusBox}
-    `;
-  }
+      // Bulk heuristic (simple and conservative)
+      const bulkBase = 4.5 * (20 / Math.max(5, levainPctNum));
+      const wholeSpeed = 1 - Math.min(0.18, (wholeGrainPct/100) * 0.25);
+      const tempAdj = Math.pow(1.18, (22 - temp) / 2);
+      const bulkHours = clamp(bulkBase * wholeSpeed * tempAdj, 2.5, 9.0);
 
-  // =========================
-  // BREAD CALC (FRIDGE MODE)
-  // =========================
-  function calcBread(){
-    syncBreadFridgeUI();
+      if (mode === "same"){
+        const bulkEnd = startAt + Math.round((autolyseMin/60 + bulkHours) * 60);
+        const benchRestMin = 20;
+        const finalProofHours = clamp(1.5 * tempAdj, 1.0, 3.0);
+        const bakeAt = bulkEnd + benchRestMin + Math.round(finalProofHours * 60);
 
-    const loaves = +loavesEl.value || 0;
-    const loafW = +loafWeightEl.value || 0;
+        breadWindowOutEl.innerHTML = `<b>${fmtTime(bakeAt - 30)} – ${fmtTime(bakeAt + 30)}</b> <b>BAKE WINDOW</b>`;
+        breadScheduleOutEl.innerHTML = `
+          <b>Same-day guide schedule</b><br>
+          • <b>${fmtTime(startAt)}</b> Start: autolyse (optional) ${autolyseMin} min<br>
+          • <b>${fmtTime(startAt + autolyseMin)}</b> Add levain + salt, mix to medium development<br>
+          • <b>${fmtTime(startAt + autolyseMin + 30)}</b> Fold #1 (optional)<br>
+          • <b>${fmtTime(startAt + autolyseMin + 90)}</b> Fold #2 (optional)<br>
+          • <b>${fmtTime(bulkEnd)}</b> Shape (aim ~30–60% rise)<br>
+          • <b>${fmtTime(bakeAt)}</b> Bake
+          <div class="hint">Bulk estimate: ~${bulkHours.toFixed(1)}h at ${temp.toFixed(1)}°C with ${levainPctNum.toFixed(0)}% levain.</div>
+        `;
+        return;
+      }
 
-    const baseHydration = (+breadHydrationEl.value || 0) / 100;
-    const saltPct = (+breadSaltPctEl.value || 0) / 100;
-    const levainPct = (+breadLevainPctEl.value || 0) / 100;
-    const levainPctNum = (+breadLevainPctEl.value || 0);
-    const autolyseMin = clamp(+breadAutolyseMinEl.value || 30, 0, 180);
+      // Fridge mode
+      const fridgeTemp = clamp(+breadFridgeTempEl.value || 4, 1, 12);
 
-    // Normalise blend to 100
-    let w  = +breadWhitePctEl.value || 0;
-    let ww = +breadWholePctEl.value || 0;
-    let rye = +breadRyePctEl.value || 0;
-    let sp  = +breadSpeltPctEl.value || 0;
-    let sem = +breadSemolinaPctEl.value || 0;
+      let benchHours = clamp(bulkHours * 0.35, 1.0, 3.0);
+      if (levainPctNum >= 25) benchHours = Math.min(benchHours, 1.5);
+      if (levainPctNum >= 35) benchHours = Math.min(benchHours, 1.0);
 
-    let sum = w + ww + rye + sp + sem;
-    if (sum <= 0) { w = 100; ww = rye = sp = sem = 0; sum = 100; }
+      const benchEnd = startAt + Math.round((autolyseMin/60 + benchHours) * 60);
 
-    const nw  = w  / sum;
-    const nww = ww / sum;
-    const nrye = rye / sum;
-    const nsp = sp / sum;
-    const nsem = sem / sum;
+      const coldFactor = clamp(4 / fridgeTemp, 0.5, 2.0);
 
-    // Semolina hydration bump (coarse)
-    let hydrationAdj = 0;
-    if (nsem > 0) hydrationAdj += Math.min(0.04, nsem * 0.5);
-    const effectiveHydration = baseHydration + hydrationAdj;
+      let coldMin = (mode === "overnight") ? 12 : 18;
+      let coldMax = (mode === "overnight") ? 16 : 36;
 
-    breadHydrationHintEl.innerHTML =
-      hydrationAdj > 0
-        ? `Coarse semolina detected → auto hydration bump: <b>+${(hydrationAdj*100).toFixed(1)}%</b> (effective: <b>${(effectiveHydration*100).toFixed(1)}%</b>)`
-        : `Effective hydration: <b>${(effectiveHydration*100).toFixed(1)}%</b>`;
+      coldMin = Math.round(coldMin * coldFactor);
+      coldMax = Math.round(coldMax * coldFactor);
 
-    const totalDough = loaves * loafW;
+      const earliestBake = benchEnd + coldMin * 60;
+      const latestBake   = benchEnd + coldMax * 60;
 
-    const totalFlourAll = totalDough / (1 + effectiveHydration + saltPct);
+      breadWindowOutEl.innerHTML = `<b>${fmtTime(earliestBake)} – ${fmtTime(latestBake)}</b> <b>“READY” WINDOW</b>`;
 
-    const levainTotal = totalFlourAll * levainPct;
-    const levainFlour = levainTotal / 2;
-    const levainWater = levainTotal / 2;
+      const warn = (levainPctNum > 25)
+        ? `<div class="warn"><b>High levain (${levainPctNum.toFixed(0)}%) + fridge:</b> keep bench short; don’t push the long-cold end.</div>`
+        : `<div class="ok"><b>Good fridge setup:</b> this levain % plays nicely with cold fermentation.</div>`;
 
-    const waterToAdd = Math.max(0, (totalFlourAll * effectiveHydration) - levainWater);
-    const salt = totalFlourAll * saltPct;
-
-    const whiteTotal = totalFlourAll * nw;
-    const wholeTotal = totalFlourAll * nww;
-    const ryeTotal = totalFlourAll * nrye;
-    const speltTotal = totalFlourAll * nsp;
-    const semolinaTotal = totalFlourAll * nsem;
-
-    const levainMode = breadLevainFlourModeEl.value; // white/blend
-    let levWhite = levainFlour, levWhole = 0, levRye = 0, levSpelt = 0;
-
-    if (levainMode === "blend") {
-      const nonSemSum = nw + nww + nrye + nsp;
-      const rw  = nonSemSum > 0 ? (nw / nonSemSum) : 1;
-      const rww = nonSemSum > 0 ? (nww / nonSemSum) : 0;
-      const rrye= nonSemSum > 0 ? (nrye / nonSemSum) : 0;
-      const rsp = nonSemSum > 0 ? (nsp / nonSemSum) : 0;
-
-      levWhite = levainFlour * rw;
-      levWhole = levainFlour * rww;
-      levRye   = levainFlour * rrye;
-      levSpelt = levainFlour * rsp;
-    }
-
-    const whiteAdd = Math.max(0, whiteTotal - levWhite);
-    const wholeAdd = Math.max(0, wholeTotal - levWhole);
-    const ryeAdd = Math.max(0, ryeTotal - levRye);
-    const speltAdd = Math.max(0, speltTotal - levSpelt);
-    const semolinaAdd = Math.max(0, semolinaTotal);
-
-    const wholeGrainPct = (nww + nrye + nsp) * 100;
-    const semPct = nsem * 100;
-
-    breadBlendHintEl.innerHTML = `
-      <b>Blend check:</b><br>
-      White ${(nw*100).toFixed(0)}% · Whole ${(nww*100).toFixed(0)}% · Rye ${(nrye*100).toFixed(0)}% · Spelt ${(nsp*100).toFixed(0)}% · Semolina ${(nsem*100).toFixed(0)}%<br>
-      <span class="muted">
-        ${semPct > 8 ? "⚠️ High semolina: pre-soak recommended. " : ""}
-        ${wholeGrainPct <= 25 ? "✅ Nice balance for lift + flavour." : "Higher wholegrain tightens crumb—watch bulk."}
-      </span>
-    `;
-
-    breadOutEl.innerHTML = `
-      <b>Totals for ${loaves} loaf/loaves</b><br><br>
-
-      <b>Autolyse (optional):</b> Flour + Water only, rest <b>${autolyseMin} min</b>.<br><br>
-
-      <b>ADD THIS</b><br>
-      <b>1) Water to add:</b> <b>${waterToAdd.toFixed(0)} g</b><br><br>
-
-      <b>2) Flour to add:</b><br>
-      • White: <b>${whiteAdd.toFixed(0)} g</b><br>
-      • Whole wheat: <b>${wholeAdd.toFixed(0)} g</b><br>
-      • Rye: <b>${ryeAdd.toFixed(0)} g</b><br>
-      • Spelt: <b>${speltAdd.toFixed(0)} g</b><br>
-      • Semolina: <b>${semolinaAdd.toFixed(0)} g</b><br><br>
-
-      <b>3) Levain (100%):</b> <b>${levainTotal.toFixed(0)} g</b><br>
-      <b>4) Salt:</b> <b>${salt.toFixed(1)} g</b><br><br>
-
-      <small>
-        Total dough: ${(loaves * loafW).toFixed(0)} g · Total flour: ${totalFlourAll.toFixed(0)} g ·
-        Hydration: ${(baseHydration*100).toFixed(1)}% (effective ${(effectiveHydration*100).toFixed(1)}%) ·
-        Salt: ${(saltPct*100).toFixed(1)}% · Levain: ${(levainPct*100).toFixed(1)}%
-      </small>
-    `;
-
-    // Schedule
-    const mode = breadFermentModeEl.value;
-    const temp = +breadTempEl.value || 22;
-
-    const mixHour = clamp(+breadMixHourEl.value || 12, 1, 12);
-    const mixMin  = clamp(+breadMixMinEl.value || 0, 0, 59);
-    const mixAmPm = breadMixAmPmEl.value || "AM";
-    const startAt = toMinutes(mixHour, mixMin, mixAmPm);
-
-    const bulkBase = 4.5 * (20 / Math.max(5, levainPctNum));
-    const wholeSpeed = 1 - Math.min(0.18, (wholeGrainPct/100) * 0.25);
-    const tempAdj = Math.pow(1.18, (22 - temp) / 2);
-    const bulkHours = clamp(bulkBase * wholeSpeed * tempAdj, 2.5, 9.0);
-
-    if (mode === "same"){
-      const bulkEnd = startAt + Math.round((autolyseMin/60 + bulkHours) * 60);
-      const benchRestMin = 20;
-      const finalProofHours = clamp(1.5 * tempAdj, 1.0, 3.0);
-      const bakeAt = bulkEnd + benchRestMin + Math.round(finalProofHours * 60);
-
-      breadWindowOutEl.innerHTML = `<b>${fmtTime(bakeAt - 30)} – ${fmtTime(bakeAt + 30)}</b> <b>BAKE WINDOW</b>`;
       breadScheduleOutEl.innerHTML = `
-        <b>Same-day guide schedule</b><br>
+        <b>Fridge plan (${mode === "overnight" ? "Overnight" : "Long cold"})</b><br>
         • <b>${fmtTime(startAt)}</b> Start: autolyse (optional) ${autolyseMin} min<br>
         • <b>${fmtTime(startAt + autolyseMin)}</b> Add levain + salt, mix to medium development<br>
-        • <b>${fmtTime(startAt + autolyseMin + 30)}</b> Fold #1 (optional)<br>
-        • <b>${fmtTime(startAt + autolyseMin + 90)}</b> Fold #2 (optional)<br>
-        • <b>${fmtTime(bulkEnd)}</b> Shape (aim ~30–60% rise)<br>
-        • <b>${fmtTime(bakeAt)}</b> Bake
-        <div class="hint">Bulk estimate: ~${bulkHours.toFixed(1)}h at ${temp.toFixed(1)}°C with ${levainPctNum.toFixed(0)}% levain.</div>
+        • <b>${fmtTime(benchEnd)}</b> <b>Into fridge</b> (aim ~20–40% rise, not full bulk)<br><br>
+
+        <b>Cold ferment @ ${fridgeTemp.toFixed(1)}°C:</b> <b>${coldMin}–${coldMax} hours</b><br>
+        <span class="muted">Colder fridge = slower (can go longer); warmer fridge = faster (go shorter).</span><br><br>
+
+        <b>Tomorrow flow:</b><br>
+        • Pull from fridge <b>60–90 min</b> before bake (or shape cool, then proof).<br>
+        • Bake when airy; poke returns slowly.
+        ${warn}
       `;
-      return;
     }
 
-    const fridgeTemp = clamp(+breadFridgeTempEl.value || 4, 1, 12);
+    // =========================
+    // Bread presets
+    // =========================
+    function applyBreadPreset(){
+      const p = breadPresetEl.value;
+      if (p === "custom") return;
 
-    let benchHours = clamp(bulkHours * 0.35, 1.0, 3.0);
-    if (levainPctNum >= 25) benchHours = Math.min(benchHours, 1.5);
-    if (levainPctNum >= 35) benchHours = Math.min(benchHours, 1.0);
+      const presets = {
+        everyday: { w:80, ww:15, rye:5, sp:0, sem:0 },
+        airy:     { w:90, ww:10, rye:0, sp:0, sem:0 },
+        rustic:   { w:75, ww:15, rye:5, sp:5, sem:0 },
+        rye:      { w:70, ww:20, rye:10, sp:0, sem:0 },
+        spelt:    { w:80, ww:10, rye:0, sp:10, sem:0 },
+        italian:  { w:75, ww:15, rye:5, sp:0, sem:5 },
+      };
 
-    const benchEnd = startAt + Math.round((autolyseMin/60 + benchHours) * 60);
+      const x = presets[p];
+      breadWhitePctEl.value = x.w;
+      breadWholePctEl.value = x.ww;
+      breadRyePctEl.value = x.rye;
+      breadSpeltPctEl.value = x.sp;
+      breadSemolinaPctEl.value = x.sem;
+      calcBread();
+    }
 
-    const coldFactor = clamp(4 / fridgeTemp, 0.5, 2.0);
+    // =========================
+    // Wiring
+    // =========================
+    breadPresetEl.addEventListener("change", applyBreadPreset);
+    breadFermentModeEl.addEventListener("change", () => { syncBreadFridgeUI(); calcBread(); });
 
-    let coldMin = (mode === "overnight") ? 12 : 18;
-    let coldMax = (mode === "overnight") ? 16 : 36;
+    document.querySelectorAll("#tab-pizza input, #tab-pizza select").forEach(el => {
+      el.addEventListener("input", calcPizza);
+      el.addEventListener("change", calcPizza);
+    });
 
-    coldMin = Math.round(coldMin * coldFactor);
-    coldMax = Math.round(coldMax * coldFactor);
+    document.querySelectorAll("#tab-bread input, #tab-bread select").forEach(el => {
+      el.addEventListener("input", calcBread);
+      el.addEventListener("change", calcBread);
+    });
 
-    const earliestBake = benchEnd + coldMin * 60;
-    const latestBake   = benchEnd + coldMax * 60;
-
-    breadWindowOutEl.innerHTML = `<b>${fmtTime(earliestBake)} – ${fmtTime(latestBake)}</b> <b>“READY” WINDOW</b>`;
-
-    const warn = (levainPctNum > 25)
-      ? `<div class="warn"><b>High levain (${levainPctNum.toFixed(0)}%) + fridge:</b> keep bench short; don’t push the long-cold end.</div>`
-      : `<div class="ok"><b>Good fridge setup:</b> this levain % plays nicely with cold fermentation.</div>`;
-
-    breadScheduleOutEl.innerHTML = `
-      <b>Fridge plan (${mode === "overnight" ? "Overnight" : "Long cold"})</b><br>
-      • <b>${fmtTime(startAt)}</b> Start: autolyse (optional) ${autolyseMin} min<br>
-      • <b>${fmtTime(startAt + autolyseMin)}</b> Add levain + salt, mix to medium development<br>
-      • <b>${fmtTime(benchEnd)}</b> <b>Into fridge</b> (aim ~20–40% rise, not full bulk)<br><br>
-
-      <b>Cold ferment @ ${fridgeTemp.toFixed(1)}°C:</b> <b>${coldMin}–${coldMax} hours</b><br>
-      <span class="muted">Colder fridge = slower (can go longer); warmer fridge = faster (go shorter).</span><br><br>
-
-      <b>Tomorrow flow:</b><br>
-      • Pull from fridge <b>60–90 min</b> before bake (or shape cool, then proof).<br>
-      • Bake when airy; poke returns slowly.
-      ${warn}
-    `;
-  }
-
-  // =========================
-  // Bread presets
-  // =========================
-  function applyBreadPreset(){
-    const p = breadPresetEl.value;
-    if (p === "custom") return;
-
-    const presets = {
-      everyday: { w:80, ww:15, rye:5, sp:0, sem:0 },
-      airy:     { w:90, ww:10, rye:0, sp:0, sem:0 },
-      rustic:   { w:75, ww:15, rye:5, sp:5, sem:0 },
-      rye:      { w:70, ww:20, rye:10, sp:0, sem:0 },
-      spelt:    { w:80, ww:10, rye:0, sp:10, sem:0 },
-      italian:  { w:75, ww:15, rye:5, sp:0, sem:5 },
-    };
-
-    const x = presets[p];
-    breadWhitePctEl.value = x.w;
-    breadWholePctEl.value = x.ww;
-    breadRyePctEl.value = x.rye;
-    breadSpeltPctEl.value = x.sp;
-    breadSemolinaPctEl.value = x.sem;
-
+    // Initial render
+    syncBreadFridgeUI();
+    calcPizza();
     calcBread();
-  }
-
-  // =========================
-  // Wiring
-  // =========================
-  breadPresetEl.addEventListener("change", applyBreadPreset);
-  breadFermentModeEl.addEventListener("change", () => { syncBreadFridgeUI(); calcBread(); });
-
-  document.querySelectorAll("#tab-pizza input, #tab-pizza select").forEach(el => {
-    el.addEventListener("input", calcPizza);
-    el.addEventListener("change", calcPizza);
+    showTab("pizza");
   });
-
-  document.querySelectorAll("#tab-bread input, #tab-bread select").forEach(el => {
-    el.addEventListener("input", calcBread);
-    el.addEventListener("change", calcBread);
-  });
-
-  // Initial render
-  syncBreadFridgeUI();
-  calcPizza();
-  calcBread();
 </script>
 
 </body>
