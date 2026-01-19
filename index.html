@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -410,19 +409,14 @@
       bread: document.getElementById("tab-bread"),
     };
 
-function show(tab){
-  tabBtns.forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
-  Object.entries(panes).forEach(([k, el]) => el.classList.toggle("active", k === tab));
+    function show(tab){
+      tabBtns.forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+      Object.entries(panes).forEach(([k, el]) => el.classList.toggle("active", k === tab));
+      if (tab === "bread") calcBread();
+      if (tab === "pizza") calcPizza();
+    }
 
-  // force refresh of outputs on tab switch
-  if (tab === "bread") calcBread();
-  if (tab === "pizza") calcPizza();
-}
-
-    tabBtns.forEach(btn => {
-      btn.addEventListener("click", () => show(btn.dataset.tab));
-    });
-
+    tabBtns.forEach(btn => btn.addEventListener("click", () => show(btn.dataset.tab)));
     show("pizza");
   })();
 
@@ -528,15 +522,12 @@ function show(tab){
     const levainPct = (+levainPctEl.value || 0) / 100;
     const type00Pct = (+type00PctEl.value || 0) / 100;
     const hgPct = 1 - type00Pct;
-
     const doughTemp = +doughTempEl.value || 24;
 
     const totalDough = pizzas * doughW;
 
-    // Flour from dough WITHOUT levain in denominator
     const totalFlourAll = totalDough / (1 + hydration + saltPct);
 
-    // Levain 100% hydration
     const levainTotal = totalFlourAll * levainPct;
     const levainFlour = levainTotal / 2;
     const levainWater = levainTotal / 2;
@@ -544,7 +535,6 @@ function show(tab){
     const waterToAdd = Math.max(0, (totalFlourAll * hydration) - levainWater);
     const salt = totalFlourAll * saltPct;
 
-    // Flour split includes levain flour, but levain is assumed High Grade
     const type00Flour = totalFlourAll * type00Pct;
     const highGradeTotalRequired = totalFlourAll * hgPct;
     const highGradeFlourToAdd = Math.max(0, highGradeTotalRequired - levainFlour);
@@ -617,35 +607,31 @@ function show(tab){
       <div class="hint">If it’s flat/sour/collapsed: feed again and wait for peak.</div>
     `;
 
-// =========================
-// Firing window (levain-aware) + workflow schedule
-// =========================
-const mixHour = clamp(+mixHourEl.value || 12, 1, 12);
-const mixMin  = clamp(+mixMinEl.value || 0, 0, 59);
-const mixAmPm = mixAmPmEl.value || "AM";
-const mixAtMins = toMinutes(mixHour, mixMin, mixAmPm);
+    // Firing window (levain-aware) + workflow schedule
+    const mixHour = clamp(+mixHourEl.value || 12, 1, 12);
+    const mixMin  = clamp(+mixMinEl.value || 0, 0, 59);
+    const mixAmPm = mixAmPmEl.value || "AM";
+    const mixAtMins = toMinutes(mixHour, mixMin, mixAmPm);
 
-// Levain-aware timing model
-const levainPctNum_F = (+levainPctEl.value || 0);     // percent
-const hydrationPct_F = (+hydrationEl.value || 0);     // percent
+    const levainPctNum_F = (+levainPctEl.value || 0);
+    const hydrationPct_F = (+hydrationEl.value || 0);
 
-// Baseline: 3% levain, ~62% hydration, ~24°C → ~6h
-const levainFactor = Math.pow(Math.max(levainPctNum_F, 0.5) / 3, -0.45);
-const tempFactor   = Math.pow(1.18, (24 - doughTemp) / 2);
-const hydrationFactor = clamp(1 + (62 - hydrationPct_F) * 0.015, 0.85, 1.25);
+    const levainFactor = Math.pow(Math.max(levainPctNum_F, 0.5) / 3, -0.45);
+    const tempFactor   = Math.pow(1.18, (24 - doughTemp) / 2);
+    const hydrationFactor = clamp(1 + (62 - hydrationPct_F) * 0.015, 0.85, 1.25);
 
-let primeStartHours = 6.0 * levainFactor * tempFactor * hydrationFactor;
-primeStartHours = clamp(primeStartHours, 2.5, 14);
+    let primeStartHours = 6.0 * levainFactor * tempFactor * hydrationFactor;
+    primeStartHours = clamp(primeStartHours, 2.5, 14);
 
-const windowWidthHours = clamp(2.4 - Math.min(levainPctNum_F, 15) * 0.06, 1.4, 2.4);
-const primeEndHours = primeStartHours + windowWidthHours;
+    const windowWidthHours = clamp(2.4 - Math.min(levainPctNum_F, 15) * 0.06, 1.4, 2.4);
+    const primeEndHours = primeStartHours + windowWidthHours;
 
-const windowStart = mixAtMins + Math.round(primeStartHours * 60);
-const windowEnd   = mixAtMins + Math.round(primeEndHours * 60);
+    const windowStart = mixAtMins + Math.round(primeStartHours * 60);
+    const windowEnd   = mixAtMins + Math.round(primeEndHours * 60);
 
-fermentOutEl.innerHTML = `<b>${fmtTime(windowStart)} – ${fmtTime(windowEnd)}</b> <b>IDEAL FIRING WINDOW</b>`;
-fermentHintEl.textContent =
-  `Model: levain ${levainPctNum_F.toFixed(1)}% · hydration ${hydrationPct_F.toFixed(1)}% · temp ${doughTemp.toFixed(1)}°C → ~${primeStartHours.toFixed(1)}–${primeEndHours.toFixed(1)}h`;
+    fermentOutEl.innerHTML = `<b>${fmtTime(windowStart)} – ${fmtTime(windowEnd)}</b> <b>IDEAL FIRING WINDOW</b>`;
+    fermentHintEl.textContent =
+      `Model: levain ${levainPctNum_F.toFixed(1)}% · hydration ${hydrationPct_F.toFixed(1)}% · temp ${doughTemp.toFixed(1)}°C → ~${primeStartHours.toFixed(1)}–${primeEndHours.toFixed(1)}h`;
 
     const fold1Min = clamp(+fold1MinEl.value || 45, 15, 240);
     const fold2Min = clamp(+fold2MinEl.value || 45, 15, 240);
@@ -660,15 +646,14 @@ fermentHintEl.textContent =
     tBall = Math.max(tBall, tFold2 + 15);
     const tRelaxDone = tBall + relaxMin;
 
-       const levNum = (+levainPctEl.value || 0);
+    const levNum = (+levainPctEl.value || 0);
     let levMsg = "";
     if (levNum <= 0) levMsg = `Levain 0% → not sourdough.`;
     else if (levNum <= 4) levMsg = `✅ Pizza zone: <b>2–4%</b> is calm + stretchy.`;
     else if (levNum <= 8) levMsg = `Moderate starter: faster, give balls longer rest.`;
     else levMsg = `⚠️ High starter: can feel tight early, then slack later.`;
 
-    // --- Timing signal (do you have enough rest BEFORE the window starts?) ---
-    const restBeforeWindowMin = Math.round(windowStart - tBall); // usually equals relaxMin unless tBall was pushed later
+    const restBeforeWindowMin = Math.round(windowStart - tBall);
     let timingMsg = "";
     let timingClass = "ok";
 
@@ -682,22 +667,17 @@ fermentHintEl.textContent =
       timingMsg = `Timing looks good: <b>${restBeforeWindowMin} min</b> ball rest before the window.`;
     }
 
-    // --- Snap-back risk signal (mostly relax time, plus small nudges) ---
-const hydrationPct = hydrationPct_F;
-const levainPctNum = levainPctNum_F;
+    const hydrationPct = hydrationPct_F;
+    const levainPctNum = levainPctNum_F;
 
-    let riskScore = 0; // higher = more snap-back risk
-
-    // relax dominates (uses EXISTING relaxMin from above)
+    let riskScore = 0;
     if (relaxMin < 45) riskScore += 3;
     else if (relaxMin < 90) riskScore += 2;
     else if (relaxMin < 120) riskScore += 1;
 
-    // stiffer dough tends to snap back more
     if (hydrationPct <= 58) riskScore += 1;
     if (hydrationPct >= 68) riskScore -= 1;
 
-    // higher levain tends to relax dough more (but can go slack later)
     if (levainPctNum >= 8) riskScore -= 1;
     if (levainPctNum >= 15) riskScore -= 1;
 
@@ -718,7 +698,7 @@ const levainPctNum = levainPctNum_F;
         <span class="muted">Based on relax ${relaxMin} min, hydration ${hydrationPct}%, levain ${levainPctNum}%.</span>
       </div>
     `;
-    
+
     pizzaGuideOutEl.innerHTML = `
       <span class="pill">Process</span> Water+Flour → Autolyse → Add levain+salt → Fold → Fold → Ball → Relax → Bake<br><br>
       • <b>${fmtTime(tAutolyseStart)}</b> Autolyse start<br>
@@ -775,10 +755,8 @@ const levainPctNum = levainPctNum_F;
 
     const totalDough = loaves * loafW;
 
-    // Flour from dough WITHOUT levain in denominator
     const totalFlourAll = totalDough / (1 + effectiveHydration + saltPct);
 
-    // Levain 100% hydration
     const levainTotal = totalFlourAll * levainPct;
     const levainFlour = levainTotal / 2;
     const levainWater = levainTotal / 2;
@@ -786,14 +764,12 @@ const levainPctNum = levainPctNum_F;
     const waterToAdd = Math.max(0, (totalFlourAll * effectiveHydration) - levainWater);
     const salt = totalFlourAll * saltPct;
 
-    // Totals by flour type (includes levain flour)
     const whiteTotal = totalFlourAll * nw;
     const wholeTotal = totalFlourAll * nww;
     const ryeTotal = totalFlourAll * nrye;
     const speltTotal = totalFlourAll * nsp;
     const semolinaTotal = totalFlourAll * nsem;
 
-    // Levain flour allocation (semolina NEVER in levain)
     const levainMode = breadLevainFlourModeEl.value; // white/blend
     let levWhite = levainFlour, levWhole = 0, levRye = 0, levSpelt = 0;
 
@@ -810,7 +786,6 @@ const levainPctNum = levainPctNum_F;
       levSpelt = levainFlour * rsp;
     }
 
-    // Flour to add
     const whiteAdd = Math.max(0, whiteTotal - levWhite);
     const wholeAdd = Math.max(0, wholeTotal - levWhole);
     const ryeAdd = Math.max(0, ryeTotal - levRye);
@@ -863,7 +838,6 @@ const levainPctNum = levainPctNum_F;
     const mixAmPm = breadMixAmPmEl.value || "AM";
     const startAt = toMinutes(mixHour, mixMin, mixAmPm);
 
-    // Same-day bulk heuristic
     const bulkBase = 4.5 * (20 / Math.max(5, levainPctNum));
     const wholeSpeed = 1 - Math.min(0.18, (wholeGrainPct/100) * 0.25);
     const tempAdj = Math.pow(1.18, (22 - temp) / 2);
@@ -889,7 +863,6 @@ const levainPctNum = levainPctNum_F;
       return;
     }
 
-    // Fridge mode
     const fridgeTemp = clamp(+breadFridgeTempEl.value || 4, 1, 12);
 
     let benchHours = clamp(bulkHours * 0.35, 1.0, 3.0);
