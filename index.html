@@ -780,6 +780,99 @@
         <div class="hint">If it’s flat/sour/collapsed: feed again and wait for peak.</div>
       `;
 
+            // =========================
+      // Firing window (levain-aware)
+      // =========================
+      const mixHour = clamp(+mixHourEl.value || 12, 1, 12);
+      const mixMin  = clamp(+mixMinEl.value || 0, 0, 59);
+      const mixAmPm = mixAmPmEl.value || "AM";
+      const mixAtMins = toMinutes(mixHour, mixMin, mixAmPm);
+
+      const hydrationPctNum = (+hydrationEl.value || 0);
+
+      // Baseline: 3% levain, 62% hydration, 24°C -> ~6h
+      const levainFactor = Math.pow(Math.max(levainPctNum, 0.5) / 3, -0.45);
+      const tempFactor   = Math.pow(1.18, (24 - doughTemp) / 2);
+      const hydrationFactor = clamp(1 + (62 - hydrationPctNum) * 0.015, 0.85, 1.25);
+
+      let primeStartHours = 6.0 * levainFactor * tempFactor * hydrationFactor;
+      primeStartHours = clamp(primeStartHours, 2.5, 14);
+
+      const windowWidthHours = clamp(2.4 - Math.min(levainPctNum, 15) * 0.06, 1.4, 2.4);
+      const primeEndHours = primeStartHours + windowWidthHours;
+
+      const windowStart = mixAtMins + Math.round(primeStartHours * 60);
+      const windowEnd   = mixAtMins + Math.round(primeEndHours * 60);
+
+      fermentOutEl.innerHTML = `<b>${fmtTime(windowStart)} – ${fmtTime(windowEnd)}</b> <b>IDEAL FIRING WINDOW</b>`;
+      fermentHintEl.textContent =
+        `Model: levain ${levainPctNum.toFixed(1)}% · hydration ${hydrationPctNum.toFixed(1)}% · temp ${doughTemp.toFixed(1)}°C → ~${primeStartHours.toFixed(1)}–${primeEndHours.toFixed(1)}h`;
+
+      // =========================
+      // Workflow schedule + snap-back signal (writes pizzaGuideOut)
+      // =========================
+      const fold1Min = clamp(+fold1MinEl.value || 45, 15, 240);
+      const fold2Min = clamp(+fold2MinEl.value || 45, 15, 240);
+      const relaxMin = clamp(+relaxMinEl.value || 150, 0, 480);
+
+      const tAutolyseStart = mixAtMins;
+      const tAutolyseEnd = tAutolyseStart + autolyseMin;
+      const tFold1 = tAutolyseEnd + fold1Min;
+      const tFold2 = tFold1 + fold2Min;
+
+      let tBall = windowStart - relaxMin;
+      tBall = Math.max(tBall, tFold2 + 15);
+      const tRelaxDone = tBall + relaxMin;
+
+      let levMsg = "";
+      if (levainPctNum <= 0) levMsg = `Levain 0% → not sourdough.`;
+      else if (levainPctNum <= 4) levMsg = `✅ Pizza zone: <b>2–4%</b> is calm + stretchy.`;
+      else if (levainPctNum <= 8) levMsg = `Moderate starter: faster, give balls longer rest.`;
+      else levMsg = `⚠️ High starter: can feel tight early, then slack later.`;
+
+      const restBeforeWindowMin = Math.round(windowStart - tBall);
+      let timingClass = "ok";
+      let timingMsg = `Timing looks good: <b>${restBeforeWindowMin} min</b> ball rest before the window.`;
+      if (restBeforeWindowMin < 90){ timingClass="warn"; timingMsg = `Timing is borderline: <b>${restBeforeWindowMin} min</b> ball rest before the window.`; }
+      if (restBeforeWindowMin < 45){ timingClass="warn"; timingMsg = `Timing is tight: only <b>${restBeforeWindowMin} min</b> ball rest before the window.`; }
+
+      let riskScore = 0;
+      if (relaxMin < 45) riskScore += 3;
+      else if (relaxMin < 90) riskScore += 2;
+      else if (relaxMin < 120) riskScore += 1;
+
+      if (hydrationPctNum <= 58) riskScore += 1;
+      if (hydrationPctNum >= 68) riskScore -= 1;
+
+      if (levainPctNum >= 8) riskScore -= 1;
+      if (levainPctNum >= 15) riskScore -= 1;
+
+      riskScore = clamp(riskScore, 0, 4);
+
+      let riskLabel = "Low";
+      let riskClass = "ok";
+      if (riskScore >= 3){ riskLabel = "High"; riskClass = "warn"; }
+      else if (riskScore >= 2){ riskLabel = "Medium"; riskClass = "warn"; }
+
+      pizzaGuideOutEl.innerHTML = `
+        <span class="pill">Process</span> Water+Flour → Autolyse → Add levain+salt → Fold → Fold → Ball → Relax → Bake<br><br>
+        • <b>${fmtTime(tAutolyseStart)}</b> Autolyse start<br>
+        • <b>${fmtTime(tAutolyseEnd)}</b> Add levain + salt<br>
+        • <b>${fmtTime(tFold1)}</b> Fold #1<br>
+        • <b>${fmtTime(tFold2)}</b> Fold #2<br>
+        • <b>${fmtTime(tBall)}</b> Ball up<br>
+        • <b>${fmtTime(tBall)}–${fmtTime(tRelaxDone)}</b> Relax<br><br>
+        <b>Levain guidance:</b> ${levMsg}
+        <div class="${timingClass}">
+          <b>${timingMsg}</b><br>
+          <span class="muted">Ball at <b>${fmtTime(tBall)}</b> · Window starts <b>${fmtTime(windowStart)}</b></span>
+        </div>
+        <div class="${riskClass}">
+          <b>Snap-back risk: ${riskLabel}</b><br>
+          <span class="muted">Based on relax ${relaxMin} min, hydration ${hydrationPctNum}%, levain ${levainPctNum}%.</span>
+        </div>
+      `;
+
       // ... keep your firing window + workflow section as-is if you want,
       // but your current version is long: it will still work once parsing is fixed.
       // For now: leave it in your file below this point if you need it.
