@@ -641,71 +641,11 @@ const cfg = getOvenConfig();
 if (!userTouchedDoughWeight){
   doughWeightEl.value = cfg.defaultBall;
 }
-      if (oven === "small") {
-        ovenHintEl.innerHTML = `<span class="pill">Small Ooni</span> Aim for <b>10.5–11"</b> pizzas. Suggested dough ball: <b>190–200g</b>.`;
-        if (!userTouchedDoughWeight) doughWeightEl.value = 200;
-      } else {
-        ovenHintEl.innerHTML = `<span class="pill">Large Ooni</span> Aim for <b>13.5–14.5"</b> pizzas. Suggested dough ball: <b>260–270g</b>.`;
-        if (!userTouchedDoughWeight) doughWeightEl.value = 265;
-      }
 
-      // -------------------------
-// Launch method + hydration recommendations
-// -------------------------
-const launchMethod = launchMethodEl ? launchMethodEl.value : "peel";
-
-// Base hydration recommendations by launch method (real-world usable)
-let recHydMin = 58;
-let recHydMax = 62;
-let recHydDefault = 60;
-
-if (launchMethod === "peel") {
-  // Direct launch: needs lower hydration to stay “slippy” and not glue itself down
-  recHydMin = (oven === "large") ? 60 : 58;
-  recHydMax = (oven === "large") ? 65 : 62;
-  recHydDefault = (oven === "large") ? 62 : 60;
-
-  if (launchHintEl) {
-    launchHintEl.innerHTML =
-      `<span class="pill">Direct launch</span> Peel + semolina/flour. Lower hydration = easier release, less panic.`;
-  }
-}
-
-if (launchMethod === "parchment") {
-  // Parchment “sled”: lets you run wetter dough in a home oven without peel skills
-  recHydMin = 62;
-  recHydMax = 70;
-  recHydDefault = (oven === "large") ? 66 : 64;
-
-  if (launchHintEl) {
-    launchHintEl.innerHTML =
-      `<span class="pill">Parchment sled</span> Build on baking paper on an inverted tray, slide onto hot steel/stone. Allows higher hydration (stretchier) with low launch risk.`;
-  }
-}
-
-if (launchMethod === "pan") {
-  // Pan pizza / tray bake: no launch, so you can go higher hydration
-  recHydMin = 68;
-  recHydMax = 80;
-  recHydDefault = 75;
-
-  if (launchHintEl) {
-    launchHintEl.innerHTML =
-      `<span class="pill">Tray / pan</span> No launch. High hydration OK. More like focaccia-meets-pizza.`;
-  }
-}
-
-// Write hydration hint
-if (hydrationHintEl) {
-  hydrationHintEl.innerHTML =
-    `<span class="pill">Hydration rec</span> <b>${recHydMin}–${recHydMax}%</b> for this launch style.`;
-}
-
-// If user hasn't manually changed hydration, gently set a default
-if (!userTouchedHydration) {
-  hydrationEl.value = recHydDefault;
-}
-
+// Hydration guidance is handled by syncLaunchOptions() already.
+// Just make sure launch method names match your dropdown:
+const launchMethod = launchMethodEl.value; // "direct" or "parchment"
+      
       const pizzas = +pizzasEl.value || 0;
       const doughW = +doughWeightEl.value || 0;
 
@@ -1125,17 +1065,6 @@ if (buildStyle === "rolled" && cfg.allowParchment) {
       el.addEventListener("input", calcPizza);
       el.addEventListener("change", calcPizza);
     });
-
-ovenProfileEl.addEventListener("change", () => {
-  userTouchedDoughWeight = false;
-  syncLaunchOptions();
-  calcPizza();
-});
-
-launchMethodEl.addEventListener("change", () => {
-  syncLaunchOptions();
-  calcPizza();
-});
     
     document.querySelectorAll("#tab-bread input, #tab-bread select").forEach(el => {
       el.addEventListener("input", calcBread);
