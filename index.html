@@ -171,25 +171,18 @@
   <input id="hydration" type="number" value="60" min="45" max="85" step="0.5">
   <div class="hint" id="hydrationHint">—</div>
 
-<label>Olive oil (%) — home oven only</label>
-<input id="oilPct" type="number" value="0" min="0" max="5" step="0.1">
-<div class="hint" id="oilHint">—</div>
-
   <label>Salt (%) — usually 2.3% to 2.7%</label>
   <input id="saltPct" type="number" value="2.5" min="0" max="4" step="0.1">
+
+     <label>Olive oil (%) — home oven + parchment (auto)</label>
+<input id="oilPct" type="number" value="0" min="0" max="5" step="0.1" disabled>
+<div class="hint" id="oilHint">
+  <span class="pill">Auto</span> Adjusts with hydration for browning + release.
+</div>
 
   <label>Levain (%) to flour ratio — Same-day pizza often 2–4%</label>
   <input id="levainPct" type="number" value="3" min="0" max="60" step="0.5">
    
-     <!-- Olive oil (only for home oven + parchment) -->
-<div id="oilBlock" class="hidden">
-  <label>Olive oil (%) — recommended for home oven + parchment</label>
-  <input id="oilPct" type="number" value="2" min="0" max="6" step="0.1">
-  <div class="hint" id="oilHint">
-    <span class="pill">Home oven booster</span> Typical: <b>1.5–2.5%</b> (default <b>2%</b>). Improves browning + extensibility.
-  </div>
-</div>
-
   <label>Flour split: Type 00 % of total flour (High Grade is the rest)</label>
   <input id="type00Pct" type="number" value="70" min="0" max="100" step="1">
 
