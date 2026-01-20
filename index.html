@@ -415,95 +415,9 @@
     return `${h12}:${String(m).padStart(2,"0")} ${ampm}`;
   }
 
-function getOvenConfig(){
-  const p = ovenProfileEl.value;
-
-  if (p === "ooni12"){
-    return {
-      label: "Small Ooni",
-      inches: 11,
-      defaultBall: 200,
-      sauceBase: 60,
-      cheeseBase: 80,
-      allowParchment: false,
-      // hydration guidance
-      hydroDirect: { min: 58, rec: 60, max: 63 },
-      hydroParch: null,
-      hint: `Aim for <b>10.5–11"</b> pizzas · 190–200g dough balls`
-    };
+  function coverageMultiplier(style){
+    return style === "light" ? 0.85 : 1.0;
   }
-
-  if (p === "ooni16"){
-    return {
-      label: "Large Ooni",
-      inches: 14,
-      defaultBall: 265,
-      sauceBase: 80,
-      cheeseBase: 110,
-      allowParchment: false,
-      hydroDirect: { min: 58, rec: 60, max: 63 },
-      hydroParch: null,
-      hint: `Aim for <b>13.5–14.5"</b> pizzas · 260–270g dough balls`
-    };
-  }
-
-  // Home oven
-  return {
-    label: "Home oven",
-    inches: 13,
-    defaultBall: 240,
-    sauceBase: 85,
-    cheeseBase: 125,
-    allowParchment: true,
-    hydroDirect: { min: 60, rec: 62, max: 65 },
-    hydroParch:  { min: 65, rec: 70, max: 74 },
-    hint: `60cm oven: <b>12–13"</b> round on steel/stone OR <b>30×40cm</b> tray on hot steel`
-  };
-}
-
-function syncLaunchOptions(){
-  const cfg = getOvenConfig();
-
-  ovenProfileHintEl.innerHTML =
-    `<span class="pill">${cfg.label}</span> ${cfg.hint}`;
-
-  // enable/disable parchment option
-  const parchOpt = launchMethodEl.querySelector('option[value="parchment"]');
-  if (parchOpt) parchOpt.disabled = !cfg.allowParchment;
-
-  // force direct if parchment not allowed
-  if (!cfg.allowParchment && launchMethodEl.value === "parchment"){
-    launchMethodEl.value = "direct";
-  }
-
-  // launch hint
-  launchHintEl.innerHTML =
-    launchMethodEl.value === "parchment"
-      ? `<span class="pill">Parchment sled</span> Build on paper, slide onto steel/stone.`
-      : `<span class="pill">Direct launch</span> Peel + semolina/flour, <b>fast</b> launch.`;
-
-  // hydration hint + optional auto-set (only if user hasn't touched hydration)
-  const isParch = launchMethodEl.value === "parchment";
-  const h = isParch ? cfg.hydroParch : cfg.hydroDirect;
-
-  if (h){
-    hydrationHintEl.innerHTML =
-      `<span class="pill">Hydration guide</span> ${isParch ? "Paper-sled" : "Direct"}: ` +
-      `<b>${h.min}–${h.max}%</b> (sweet spot <b>${h.rec}%</b>).`;
-
-    if (!userTouchedHydration){
-      hydrationEl.value = h.rec;
-    }
-  } else {
-    hydrationHintEl.innerHTML =
-      `<span class="pill">Hydration guide</span> Use <b>58–63%</b> for Ooni direct launch.`;
-    if (!userTouchedHydration) hydrationEl.value = 60;
-  }
-}
-  
-function coverageMultiplier(style){
-  return style === "light" ? 0.85 : 1.0;
-}
 
   // =========================
   // DOM ready
@@ -531,14 +445,13 @@ function coverageMultiplier(style){
     // =========================
     // Elements – PIZZA
     // =========================
-    
     const ovenProfileEl = document.getElementById("ovenProfile");
-const ovenProfileHintEl = document.getElementById("ovenProfileHint");
+    const ovenProfileHintEl = document.getElementById("ovenProfileHint");
 
-const launchMethodEl = document.getElementById("launchMethod");
-const launchHintEl = document.getElementById("launchHint");
+    const launchMethodEl = document.getElementById("launchMethod");
+    const launchHintEl = document.getElementById("launchHint");
 
-const hydrationHintEl = document.getElementById("hydrationHint");
+    const hydrationHintEl = document.getElementById("hydrationHint");
 
     const pizzasEl = document.getElementById("pizzas");
     const doughWeightEl = document.getElementById("doughWeight");
@@ -574,8 +487,109 @@ const hydrationHintEl = document.getElementById("hydrationHint");
 
     let userTouchedDoughWeight = false;
     doughWeightEl.addEventListener("input", () => { userTouchedDoughWeight = true; });
+
     let userTouchedHydration = false;
-hydrationEl.addEventListener("input", () => { userTouchedHydration = true; });
+    hydrationEl.addEventListener("input", () => { userTouchedHydration = true; });
+
+    // =========================
+    // Oven + Launch config (MUST be inside DOMContentLoaded)
+    // =========================
+    function getOvenConfig(){
+      const p = ovenProfileEl.value;
+
+      if (p === "ooni12"){
+        return {
+          label: "Small Ooni",
+          inches: 11,
+          defaultBall: 200,
+          sauceBase: 60,
+          cheeseBase: 80,
+          allowParchment: false,
+          hydroDirect: { min: 58, rec: 60, max: 63 },
+          hydroParch: null,
+          hint: `Aim for <b>10.5–11"</b> pizzas · 190–200g dough balls`
+        };
+      }
+
+      if (p === "ooni16"){
+        return {
+          label: "Large Ooni",
+          inches: 14,
+          defaultBall: 265,
+          sauceBase: 80,
+          cheeseBase: 110,
+          allowParchment: false,
+          hydroDirect: { min: 58, rec: 60, max: 63 },
+          hydroParch: null,
+          hint: `Aim for <b>13.5–14.5"</b> pizzas · 260–270g dough balls`
+        };
+      }
+
+      // Home oven
+      return {
+        label: "Home oven",
+        inches: 13,
+        defaultBall: 240,
+        sauceBase: 85,
+        cheeseBase: 125,
+        allowParchment: true,
+        hydroDirect: { min: 60, rec: 62, max: 65 },
+        hydroParch:  { min: 65, rec: 70, max: 74 },
+        hint: `60cm oven: <b>12–13"</b> round on steel/stone OR <b>30×40cm</b> tray on hot steel`
+      };
+    }
+
+    function syncLaunchOptions(){
+      const cfg = getOvenConfig();
+
+      ovenProfileHintEl.innerHTML =
+        `<span class="pill">${cfg.label}</span> ${cfg.hint}`;
+
+      // enable/disable parchment option
+      const parchOpt = launchMethodEl.querySelector('option[value="parchment"]');
+      if (parchOpt) parchOpt.disabled = !cfg.allowParchment;
+
+      // force direct if parchment not allowed
+      if (!cfg.allowParchment && launchMethodEl.value === "parchment"){
+        launchMethodEl.value = "direct";
+      }
+
+      // launch hint
+      launchHintEl.innerHTML =
+        launchMethodEl.value === "parchment"
+          ? `<span class="pill">Parchment sled</span> Build on paper, slide onto steel/stone.`
+          : `<span class="pill">Direct launch</span> Peel + semolina/flour, <b>fast</b> launch.`;
+
+      // hydration hint + optional auto-set (only if user hasn't touched hydration)
+      const isParch = launchMethodEl.value === "parchment";
+      const h = isParch ? cfg.hydroParch : cfg.hydroDirect;
+
+      if (h){
+        hydrationHintEl.innerHTML =
+          `<span class="pill">Hydration guide</span> ${isParch ? "Paper-sled" : "Direct"}: ` +
+          `<b>${h.min}–${h.max}%</b> (sweet spot <b>${h.rec}%</b>).`;
+
+        if (!userTouchedHydration){
+          hydrationEl.value = h.rec;
+        }
+      } else {
+        hydrationHintEl.innerHTML =
+          `<span class="pill">Hydration guide</span> Use <b>58–63%</b> for Ooni direct launch.`;
+        if (!userTouchedHydration) hydrationEl.value = 60;
+      }
+    }
+
+    // Make the hints react immediately
+    ovenProfileEl.addEventListener("change", () => {
+      userTouchedDoughWeight = false;
+      syncLaunchOptions();
+      calcPizza();
+    });
+
+    launchMethodEl.addEventListener("change", () => {
+      syncLaunchOptions();
+      calcPizza();
+    });
 
     // =========================
     // Elements – BREAD
