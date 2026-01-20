@@ -176,6 +176,15 @@
 
   <label>Levain (%) to flour ratio — Same-day pizza often 2–4%</label>
   <input id="levainPct" type="number" value="3" min="0" max="60" step="0.5">
+   
+     <!-- Olive oil (only for home oven + parchment) -->
+<div id="oilBlock" class="hidden">
+  <label>Olive oil (%) — recommended for home oven + parchment</label>
+  <input id="oilPct" type="number" value="2" min="0" max="6" step="0.1">
+  <div class="hint" id="oilHint">
+    <span class="pill">Home oven booster</span> Typical: <b>1.5–2.5%</b> (default <b>2%</b>). Improves browning + extensibility.
+  </div>
+</div>
 
   <label>Flour split: Type 00 % of total flour (High Grade is the rest)</label>
   <input id="type00Pct" type="number" value="70" min="0" max="100" step="1">
@@ -458,6 +467,8 @@
     const hydrationEl = document.getElementById("hydration");
     const saltPctEl = document.getElementById("saltPct");
     const levainPctEl = document.getElementById("levainPct");
+    const oilBlockEl = document.getElementById("oilBlock");
+const oilPctEl = document.getElementById("oilPct");
     const type00PctEl = document.getElementById("type00Pct");
     const doughTempEl = document.getElementById("doughTemp");
 
@@ -490,6 +501,9 @@
 
     let userTouchedHydration = false;
     hydrationEl.addEventListener("input", () => { userTouchedHydration = true; });
+
+    let userTouchedOil = false;
+oilPctEl.addEventListener("input", () => { userTouchedOil = true; });
 
     // =========================
     // Oven + Launch config (MUST be inside DOMContentLoaded)
@@ -562,6 +576,16 @@
 
       // hydration hint + optional auto-set (only if user hasn't touched hydration)
       const isParch = launchMethodEl.value === "parchment";
+      // --- Olive oil UI rule: ONLY Home oven + parchment ---
+const isHome = (ovenProfileEl.value === "home");
+const showOil = isHome && isParch;
+
+if (oilBlockEl) oilBlockEl.classList.toggle("hidden", !showOil);
+
+// default oil to 2% unless user has touched it
+if (showOil && !userTouchedOil){
+  oilPctEl.value = 2.0;
+}
       const h = isParch ? cfg.hydroParch : cfg.hydroDirect;
 
       if (h){
@@ -649,8 +673,14 @@ const launchMethod = launchMethodEl.value; // "direct" or "parchment"
       const pizzas = +pizzasEl.value || 0;
       const doughW = +doughWeightEl.value || 0;
 
-      const hydration = (+hydrationEl.value || 0) / 100;
-      const saltPct = (+saltPctEl.value || 0) / 100;
+const hydration = (+hydrationEl.value || 0) / 100;
+const saltPct = (+saltPctEl.value || 0) / 100;
+
+// Oil only applies when shown; otherwise force 0
+const oilPct = (!oilBlockEl.classList.contains("hidden"))
+  ? ((+oilPctEl.value || 0) / 100)
+  : 0;
+const oilPctNum = oilPct * 100;
 
       const levainPct = (+levainPctEl.value || 0) / 100; // fraction
       const levainPctNum = (+levainPctEl.value || 0);    // percent
@@ -663,7 +693,7 @@ const launchMethod = launchMethodEl.value; // "direct" or "parchment"
       const totalDough = pizzas * doughW;
 
       // Flour from dough (levain treated as flour+water already inside totals)
-      const totalFlourAll = totalDough / (1 + hydration + saltPct);
+const totalFlourAll = totalDough / (1 + hydration + saltPct + oilPct);
 
       // Levain 100% hydration
       const levainTotal = totalFlourAll * levainPct;
@@ -672,6 +702,7 @@ const launchMethod = launchMethodEl.value; // "direct" or "parchment"
 
       const waterToAdd = Math.max(0, (totalFlourAll * hydration) - levainWater);
       const salt = totalFlourAll * saltPct;
+      const oil = totalFlourAll * oilPct;
 
       // Flour split (levain assumed High Grade)
       const type00Flour = totalFlourAll * type00Pct;
@@ -689,12 +720,13 @@ const launchMethod = launchMethodEl.value; // "direct" or "parchment"
         <b>High Grade flour:</b> <b>${highGradeFlourToAdd.toFixed(0)} g</b><br><br>
 
         <span class="pill">After autolyse</span><br>
-        <b>Levain (100% hydration):</b> <b>${levainTotal.toFixed(0)} g</b><br>
-        <b>Salt:</b> <b>${salt.toFixed(1)} g</b><br><br>
+<b>Levain (100% hydration):</b> <b>${levainTotal.toFixed(0)} g</b><br>
+<b>Salt:</b> <b>${salt.toFixed(1)} g</b><br>
+<b>Olive oil:</b> <b>${oil.toFixed(1)} g</b><br><br>
 
         <small>
           Total dough: ${totalDough.toFixed(0)} g · Total flour: ${totalFlourAll.toFixed(0)} g ·
-          Hydration: ${(hydration*100).toFixed(1)}% · Salt: ${(saltPct*100).toFixed(1)}% · Levain: ${levainPctNum.toFixed(1)}%
+Hydration: ${(hydration*100).toFixed(1)}% · Salt: ${(saltPct*100).toFixed(1)}% · Levain: ${levainPctNum.toFixed(1)}% · Oil: ${oilPctNum.toFixed(1)}%
         </small>
       `;
 
