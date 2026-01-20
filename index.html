@@ -171,6 +171,10 @@
   <input id="hydration" type="number" value="60" min="45" max="85" step="0.5">
   <div class="hint" id="hydrationHint">—</div>
 
+<label>Olive oil (%) — home oven only</label>
+<input id="oilPct" type="number" value="0" min="0" max="5" step="0.1">
+<div class="hint" id="oilHint">—</div>
+
   <label>Salt (%) — usually 2.3% to 2.7%</label>
   <input id="saltPct" type="number" value="2.5" min="0" max="4" step="0.1">
 
@@ -425,7 +429,48 @@
   }
 
   function coverageMultiplier(style){
-    return style === "light" ? 0.85 : 1.0;
+    
+  // =========================
+// Helpers
+// =========================
+function clamp(n, min, max){
+  return Math.max(min, Math.min(max, n));
+}
+
+function toMinutes(h12, m, ampm){
+  let h = (h12 % 12);
+  if (ampm === "PM") h += 12;
+  return h * 60 + m;
+}
+
+function fmtTime(mins){
+  mins = ((mins % 1440) + 1440) % 1440;
+  const h24 = Math.floor(mins / 60);
+  const m = mins % 60;
+  const ampm = h24 >= 12 ? "PM" : "AM";
+  const h12 = (h24 % 12) === 0 ? 12 : (h24 % 12);
+  return `${h12}:${String(m).padStart(2,"0")} ${ampm}`;
+}
+
+function coverageMultiplier(style){
+  return style === "light" ? 0.85 : 1.0;
+}
+
+/* =========================
+   Oil recommendation helper
+   (home oven + parchment only)
+========================= */
+function recommendedOilPct(hydrationPct){
+  if (hydrationPct <= 58) return 2.8;
+  if (hydrationPct >= 68) return 0.5;
+
+  const slope = (0.5 - 2.8) / (68 - 58);
+  return +(2.8 + slope * (hydrationPct - 58)).toFixed(2);
+}
+
+    window.addEventListener("DOMContentLoaded", () => {
+  ...
+});
   }
 
   // =========================
@@ -465,6 +510,11 @@
     const pizzasEl = document.getElementById("pizzas");
     const doughWeightEl = document.getElementById("doughWeight");
     const hydrationEl = document.getElementById("hydration");
+    const oilPctEl = document.getElementById("oilPct");
+const oilHintEl = document.getElementById("oilHint");
+
+let userTouchedOil = false;
+oilPctEl.addEventListener("input", () => { userTouchedOil = true; });
     const saltPctEl = document.getElementById("saltPct");
     const levainPctEl = document.getElementById("levainPct");
     const oilBlockEl = document.getElementById("oilBlock");
@@ -555,6 +605,32 @@ oilPctEl.addEventListener("input", () => { userTouchedOil = true; });
 
     function syncLaunchOptions(){
       const cfg = getOvenConfig();
+
+      // -------------------------
+// Olive oil (HOME OVEN ONLY)
+// -------------------------
+const hydrationPctNum = (+hydrationEl.value || 0);
+const isHomeOven = (ovenProfileEl.value === "home");
+
+if (isHomeOven){
+  const recOilPct = recommendedOilPct(hydrationPctNum);
+
+  // Auto-set only if user hasn't touched oil
+  if (!userTouchedOil){
+    oilPctEl.value = recOilPct;
+  }
+
+  oilHintEl.innerHTML =
+    `<span class="pill">Oil guide</span> Home oven: <b>${recOilPct}%</b> suggested at ${hydrationPctNum}% hydration.`;
+} else {
+  // Force oil off for Ooni profiles
+  oilPctEl.value = 0;
+  oilHintEl.innerHTML =
+    `<span class="pill">Oil guide</span> Pizza ovens: keep oil at <b>0%</b> (better launch + char).`;
+}
+
+// Oil fraction used in dough math
+const oilPct = (+oilPctEl.value || 0) / 100;
 
       ovenProfileHintEl.innerHTML =
         `<span class="pill">${cfg.label}</span> ${cfg.hint}`;
@@ -702,7 +778,7 @@ const totalFlourAll = totalDough / (1 + hydration + saltPct + oilPct);
 
       const waterToAdd = Math.max(0, (totalFlourAll * hydration) - levainWater);
       const salt = totalFlourAll * saltPct;
-      const oil = totalFlourAll * oilPct;
+const oilGrams = totalFlourAll * oilPct;
 
       // Flour split (levain assumed High Grade)
       const type00Flour = totalFlourAll * type00Pct;
@@ -722,7 +798,7 @@ const totalFlourAll = totalDough / (1 + hydration + saltPct + oilPct);
         <span class="pill">After autolyse</span><br>
 <b>Levain (100% hydration):</b> <b>${levainTotal.toFixed(0)} g</b><br>
 <b>Salt:</b> <b>${salt.toFixed(1)} g</b><br>
-<b>Olive oil:</b> <b>${oil.toFixed(1)} g</b><br><br>
+<b>Olive oil:</b> <b>${oilGrams.toFixed(0)} g</b><br><br>
 
         <small>
           Total dough: ${totalDough.toFixed(0)} g · Total flour: ${totalFlourAll.toFixed(0)} g ·
