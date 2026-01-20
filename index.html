@@ -142,50 +142,51 @@
   ========================== -->
   <div id="tab-pizza" class="tabpane active">
 
-    <div class="card">
-      <h2>Pizza Dough Inputs</h2>
+   <div class="card">
+  <h2>Pizza Dough Inputs</h2>
 
-      <label>Oven size</label>
-      <select id="oven">
-        <option value="small" selected>Small Ooni (12") — realistic 10.5–11" pizza</option>
-        <option value="large">Large Ooni (16") — realistic 13.5–14.5" pizza</option>
-      </select>
-      <div class="hint" id="ovenHint">—</div>
+  <label>Oven profile</label>
+  <select id="ovenProfile">
+    <option value="ooni12" selected>Small Ooni / 12" pizza oven (10.5–11" pizza)</option>
+    <option value="ooni16">Large Ooni / 16" pizza oven (13.5–14.5" pizza)</option>
+    <option value="home">Conventional home oven (steel / stone / tray)</option>
+  </select>
+  <div class="hint" id="ovenProfileHint">—</div>
 
-      <label>Launch method</label>
-<select id="launchMethod">
-  <option value="direct" selected>Direct launch (peel → stone/steel) — Ooni style</option>
-  <option value="parchment">Parchment paper launch (tray/board → parchment → steel) — home oven friendly</option>
-</select>
-<div class="hint" id="launchHint">—</div>
+  <label>Launch method</label>
+  <select id="launchMethod">
+    <option value="direct" selected>Direct launch (peel → stone/steel) — pizza oven style</option>
+    <option value="parchment">Parchment paper “sled” (tray/board → parchment → steel) — home oven friendly</option>
+  </select>
+  <div class="hint" id="launchHint">—</div>
 
-      <label>Number of pizzas desired</label>
-      <input id="pizzas" type="number" value="50" min="1" step="1">
+  <label>Number of pizzas desired</label>
+  <input id="pizzas" type="number" value="50" min="1" step="1">
 
-      <label>Dough weight per pizza (g)</label>
-      <input id="doughWeight" type="number" value="200" min="100" step="5">
-      <div class="hint">Rule of thumb: <b>Small Ooni 190–200g</b> · <b>Large Ooni 260–270g</b></div>
+  <label>Dough weight per pizza (g)</label>
+  <input id="doughWeight" type="number" value="200" min="100" step="5">
+  <div class="hint" id="doughWeightHint">Rule of thumb: <b>Ooni 12" 190–200g</b> · <b>Ooni 16" 260–270g</b> · <b>Home oven 240–280g</b></div>
 
-      <label>Dough hydration (%) — 58–62% paddock-friendly</label>
-      <input id="hydration" type="number" value="60" min="45" max="85" step="0.5">
-      <div class="hint" id="hydrationHint">—</div>
+  <label>Dough hydration (%)</label>
+  <input id="hydration" type="number" value="60" min="45" max="85" step="0.5">
+  <div class="hint" id="hydrationHint">—</div>
 
-      <label>Salt (%) — usually 2.3% to 2.7%</label>
-      <input id="saltPct" type="number" value="2.5" min="0" max="4" step="0.1">
+  <label>Salt (%) — usually 2.3% to 2.7%</label>
+  <input id="saltPct" type="number" value="2.5" min="0" max="4" step="0.1">
 
-      <label>Levain (%) to flour ratio — Same-day pizza often 2–4%</label>
-      <input id="levainPct" type="number" value="3" min="0" max="60" step="0.5">
+  <label>Levain (%) to flour ratio — Same-day pizza often 2–4%</label>
+  <input id="levainPct" type="number" value="3" min="0" max="60" step="0.5">
 
-      <label>Flour split: Type 00 % of total flour (High Grade is the rest)</label>
-      <input id="type00Pct" type="number" value="70" min="0" max="100" step="1">
+  <label>Flour split: Type 00 % of total flour (High Grade is the rest)</label>
+  <input id="type00Pct" type="number" value="70" min="0" max="100" step="1">
 
-      <label>Air Temperature where dough will sit (°C)</label>
-      <input id="doughTemp" type="number" value="24" step="0.5">
+  <label>Air temperature where dough will sit (°C)</label>
+  <input id="doughTemp" type="number" value="24" step="0.5">
 
-      <p class="hint">
-        Note: Levain flour is assumed High Grade. If Type 00 is 100% and levain % &gt; 0, you still need High Grade for the levain.
-      </p>
-    </div>
+  <p class="hint">
+    Note: Levain flour is assumed High Grade. If Type 00 is 100% and levain % &gt; 0, you still need High Grade for the levain.
+  </p>
+</div>
 
     <div class="card">
       <h2>Pizza Dough Quantities</h2>
@@ -202,19 +203,17 @@
       </select>
       <div class="hint" id="buildHint">—</div>
 
-      <label>Sauce coverage</label>
-      <select id="sauceStyle">
-        <option value="light">Light</option>
-        <option value="medium" selected>Medium</option>
-        <option value="heavy">Heavy</option>
-      </select>
+<label>Sauce coverage</label>
+<select id="sauceStyle">
+  <option value="light">Light</option>
+  <option value="regular" selected>Regular</option>
+</select>
 
-      <label>Cheese coverage</label>
-      <select id="cheeseStyle">
-        <option value="light" selected>Light</option>
-        <option value="medium">Medium</option>
-        <option value="heavy">Heavy</option>
-      </select>
+<label>Cheese coverage</label>
+<select id="cheeseStyle">
+  <option value="light">Light</option>
+  <option value="regular" selected>Regular</option>
+</select>
 
       <label>Tomato can size (g)</label>
       <select id="canSize">
@@ -416,11 +415,95 @@
     return `${h12}:${String(m).padStart(2,"0")} ${ampm}`;
   }
 
-  function coverageMultiplier(style){
-    if (style === "light") return 0.85;
-    if (style === "heavy") return 1.15;
-    return 1.00;
+function getOvenConfig(){
+  const p = ovenProfileEl.value;
+
+  if (p === "ooni12"){
+    return {
+      label: "Small Ooni",
+      inches: 11,
+      defaultBall: 200,
+      sauceBase: 60,
+      cheeseBase: 80,
+      allowParchment: false,
+      // hydration guidance
+      hydroDirect: { min: 58, rec: 60, max: 63 },
+      hydroParch: null,
+      hint: `Aim for <b>10.5–11"</b> pizzas · 190–200g dough balls`
+    };
   }
+
+  if (p === "ooni16"){
+    return {
+      label: "Large Ooni",
+      inches: 14,
+      defaultBall: 265,
+      sauceBase: 80,
+      cheeseBase: 110,
+      allowParchment: false,
+      hydroDirect: { min: 58, rec: 60, max: 63 },
+      hydroParch: null,
+      hint: `Aim for <b>13.5–14.5"</b> pizzas · 260–270g dough balls`
+    };
+  }
+
+  // Home oven
+  return {
+    label: "Home oven",
+    inches: 13,
+    defaultBall: 240,
+    sauceBase: 85,
+    cheeseBase: 125,
+    allowParchment: true,
+    hydroDirect: { min: 60, rec: 62, max: 65 },
+    hydroParch:  { min: 65, rec: 70, max: 74 },
+    hint: `60cm oven: <b>12–13"</b> round on steel/stone OR <b>30×40cm</b> tray on hot steel`
+  };
+}
+
+function syncLaunchOptions(){
+  const cfg = getOvenConfig();
+
+  ovenProfileHintEl.innerHTML =
+    `<span class="pill">${cfg.label}</span> ${cfg.hint}`;
+
+  // enable/disable parchment option
+  const parchOpt = launchMethodEl.querySelector('option[value="parchment"]');
+  if (parchOpt) parchOpt.disabled = !cfg.allowParchment;
+
+  // force direct if parchment not allowed
+  if (!cfg.allowParchment && launchMethodEl.value === "parchment"){
+    launchMethodEl.value = "direct";
+  }
+
+  // launch hint
+  launchHintEl.innerHTML =
+    launchMethodEl.value === "parchment"
+      ? `<span class="pill">Parchment sled</span> Build on paper, slide onto steel/stone.`
+      : `<span class="pill">Direct launch</span> Peel + semolina/flour, <b>fast</b> launch.`;
+
+  // hydration hint + optional auto-set (only if user hasn't touched hydration)
+  const isParch = launchMethodEl.value === "parchment";
+  const h = isParch ? cfg.hydroParch : cfg.hydroDirect;
+
+  if (h){
+    hydrationHintEl.innerHTML =
+      `<span class="pill">Hydration guide</span> ${isParch ? "Paper-sled" : "Direct"}: ` +
+      `<b>${h.min}–${h.max}%</b> (sweet spot <b>${h.rec}%</b>).`;
+
+    if (!userTouchedHydration){
+      hydrationEl.value = h.rec;
+    }
+  } else {
+    hydrationHintEl.innerHTML =
+      `<span class="pill">Hydration guide</span> Use <b>58–63%</b> for Ooni direct launch.`;
+    if (!userTouchedHydration) hydrationEl.value = 60;
+  }
+}
+  
+function coverageMultiplier(style){
+  return style === "light" ? 0.85 : 1.0;
+}
 
   // =========================
   // DOM ready
@@ -448,11 +531,13 @@
     // =========================
     // Elements – PIZZA
     // =========================
-    const ovenEl = document.getElementById("oven");
-    const ovenHintEl = document.getElementById("ovenHint");
+    
+    const ovenProfileEl = document.getElementById("ovenProfile");
+const ovenProfileHintEl = document.getElementById("ovenProfileHint");
 
-    const launchMethodEl = document.getElementById("launchMethod");
+const launchMethodEl = document.getElementById("launchMethod");
 const launchHintEl = document.getElementById("launchHint");
+
 const hydrationHintEl = document.getElementById("hydrationHint");
 
     const pizzasEl = document.getElementById("pizzas");
@@ -536,8 +621,12 @@ hydrationEl.addEventListener("input", () => { userTouchedHydration = true; });
     // PIZZA CALC
     // =========================
     function calcPizza(){
-      const oven = ovenEl.value;
+syncLaunchOptions();
+const cfg = getOvenConfig();
 
+if (!userTouchedDoughWeight){
+  doughWeightEl.value = cfg.defaultBall;
+}
       if (oven === "small") {
         ovenHintEl.innerHTML = `<span class="pill">Small Ooni</span> Aim for <b>10.5–11"</b> pizzas. Suggested dough ball: <b>190–200g</b>.`;
         if (!userTouchedDoughWeight) doughWeightEl.value = 200;
@@ -659,10 +748,10 @@ if (!userTouchedHydration) {
       const buildStyle = buildStyleEl.value;
       const pizzasN = Math.max(0, pizzas);
 
-      let sauceBase = (oven === "small") ? 60 : 80;
-      let cheeseBase = (oven === "small") ? 80 : 110;
+let sauceBase = cfg.sauceBase;
+let cheeseBase = cfg.cheeseBase;
 
-      if (buildStyle === "rolled") {
+if (buildStyle === "rolled" && cfg.allowParchment) {
         sauceBase = Math.round(sauceBase * 1.25);
         cheeseBase = Math.round(cheeseBase * 1.15);
         buildHintEl.innerHTML = `<span class="pill">Rolled</span> Even thickness + more centre area → estimates bumped.`;
@@ -1023,6 +1112,17 @@ if (!userTouchedHydration) {
       el.addEventListener("change", calcPizza);
     });
 
+ovenProfileEl.addEventListener("change", () => {
+  userTouchedDoughWeight = false;
+  syncLaunchOptions();
+  calcPizza();
+});
+
+launchMethodEl.addEventListener("change", () => {
+  syncLaunchOptions();
+  calcPizza();
+});
+    
     document.querySelectorAll("#tab-bread input, #tab-bread select").forEach(el => {
       el.addEventListener("input", calcBread);
       el.addEventListener("change", calcBread);
